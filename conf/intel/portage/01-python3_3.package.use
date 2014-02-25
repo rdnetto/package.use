@@ -12,7 +12,7 @@ dev-python/matplotlib python_targets_python3_3
 # required by dev-python/python-dateutil-2.1-r1
 # required by dev-python/matplotlib-1.3.0
 # required by matplotlib (argument)
-=dev-python/six-1.4.1 python_targets_python3_3
+dev-python/six python_targets_python3_3
 # required by dev-python/matplotlib-1.3.0
 # required by matplotlib (argument)
 >=dev-python/pyparsing-2.0.1 python_targets_python3_3
