@@ -34,3 +34,5 @@ dev-python/six python_targets_python3_3
 # required by sci-libs/scipy (argument)
 >=dev-python/pillow-2.1.0 tk
 
+dev-python/pygame python_targets_python3_3
+
