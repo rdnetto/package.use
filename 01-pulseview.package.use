@@ -1,4 +1,4 @@
-sci-electronics/pulseview python_single_target_python3_3
-sci-libs/libsigrokdecode python_single_target_python3_3
-sci-electronics/sigrok-cli python_single_target_python3_3
+sci-electronics/pulseview python_single_target_python3_4
+sci-libs/libsigrokdecode python_single_target_python3_4
+sci-electronics/sigrok-cli python_single_target_python3_4
 
