@@ -1,2 +1,4 @@
-# Needed for smeargle
-app-editors/vim-qt ruby
+# ruby: needed for smeargle
+# lua:  needed for color_coded
+app-editors/vim    ruby lua
+app-editors/vim-qt ruby lua
