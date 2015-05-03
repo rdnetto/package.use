@@ -1,3 +1,4 @@
 dev-lang/dmd doc
 dev-libs/qtd webkit
+dev-util/dlang-tools dmd-2_067
 
