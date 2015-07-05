@@ -1,2 +1,7 @@
 app-shells/autojump zsh-completion
 dev-python/pip zsh-completion
+
+# Powerline (from raiagent overlay)
+app-misc/powerline bash extra fonts man tmux vim zsh
+media-fonts/powerline-fonts droidsansmono
+
