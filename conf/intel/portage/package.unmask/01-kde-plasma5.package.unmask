@@ -1,0 +1,25 @@
+# Virtual package not unmasked upstream
+=kde-apps/kdebase-meta-15.08.0
+
+# Need new telepathy for its plasmoid
+=kde-apps/plasma-telepathy-meta-15.08.1
+=kde-apps/ktp-accounts-kcm-15.08.1
+=kde-apps/ktp-approver-15.08.1
+=kde-apps/ktp-auth-handler-15.08.1
+=kde-apps/ktp-call-ui-15.08.1
+=kde-apps/ktp-common-internals-15.08.1
+=kde-apps/ktp-contact-list-15.08.1
+=kde-apps/ktp-contact-runner-15.08.1
+=kde-apps/ktp-desktop-applets-15.08.1
+=kde-apps/ktp-filetransfer-handler-15.08.1
+=kde-apps/ktp-kded-module-15.08.1
+=kde-apps/ktp-send-file-15.08.1
+=kde-apps/ktp-text-ui-15.08.1
+
+<kde-apps/signon-kwallet-extension-15.08.49
+<kde-apps/kaccounts-providers-15.08.49
+<kde-apps/kaccounts-integration-15.08.49
+
+#need KCM entry
+=kde-apps/kwalletmanager-15.08.0
+
