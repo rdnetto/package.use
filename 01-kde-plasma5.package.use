@@ -1,0 +1,16 @@
+# handbook is mutually exclusive with kde-plasma/kde-cli-tools USE=handbook, but is set globally
+kde-apps/kdesu -handbook
+
+# ditto for kde-plasma/plasma-desktop
+kde-apps/knetattach -handbook
+
+# !minimal pulls in kcontrol, which block plasma-desktop:5 (not sure why)
+kde-apps/kdebase-runtime-meta minimal
+
+# Portage insists that -bluetooth is needed, not sure why
+kde-apps/solid-runtime -bluetooth networkmanager
+
+# Needed for Plasma 5 Telepathy
+net-libs/telepathy-qt qt5
+kde-apps/ktp-common-internals otr
+
