@@ -1,1 +1,15 @@
-00-sabayon.package.use
+# kept in sync with entropy
+00-sabayon.package.*
+make.conf.amd64
+
+# stock files
+bin/
+package.license
+package.use.default
+package.use.sabayon.entropy
+patches/
+postsync.d/
+profile/
+repo.postsync.d/
+savedconfig/
+
