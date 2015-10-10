@@ -11,6 +11,7 @@ postsync.d/
 profile/
 repo.postsync.d/
 savedconfig/
+make.profile
 
 # temporary files
 ._cfg*
