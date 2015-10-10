@@ -37,9 +37,6 @@ SAB_COMMS="jabber msn yahoo icq irc aim rss slp mail imap"
 # Actually used by Entropy:
 CPU_FLAGS_X86="mmx"
 
-# Customized for phenom:
-CPU_FLAGS_X86="aes avx f16c fma3 fma4 mmx mmxext popcnt sse sse2 sse3 sse4_1 sse4_2 sse4a ssse3 xop"
-
 # CPU_FLAGS_X86 is only here to provide legacy support during the transition period - remove in a year or so
 USE="${SAB_BAD} ${SAB_MEDIA} ${SAB_CODECS} ${SAB_SYSTEM} ${SAB_FILESYS} ${SAB_PRINT} ${SAB_XSYS} ${SAB_DESKTOP} ${SAB_BROWSER} ${SAB_COMMS} ${CPU_FLAGS_X86}"
 
@@ -61,12 +58,11 @@ QEMU_SOFTMMU_TARGETS="x86_64 arm cris i386 m68k microblaze mips mips64 mips64el 
 PORTDIR_OVERLAY=""
 source /var/lib/layman/make.conf
 
-CONFIG_PROTECT="/usr/share/config/kdm /etc /etc/conf.d /etc/init.d /opt/sabayon-build /opt/brother/scanner/brscan4/brsanenetdevice4.cfg /etc/idea"
+CONFIG_PROTECT="/usr/share/config/kdm /etc /etc/conf.d /etc/init.d"
 # /lib/modules mask is useful for our internal tinderbox
 CONFIG_PROTECT_MASK="/etc/skel /lib/modules"
 APACHE2_MPMS="prefork"
 GENTOO_MIRRORS="http://ftp.swin.edu.au/gentoo ftp://ftp.swin.edu.au/gentoo"
-ACCEPT_LICENSE="* -@EULA"
 
 USE_PYTHON="2.7"
 PYTHON_TARGETS="python2_7 python3_6"
