@@ -12,3 +12,6 @@ profile/
 repo.postsync.d/
 savedconfig/
 
+# temporary files
+._cfg*
+
