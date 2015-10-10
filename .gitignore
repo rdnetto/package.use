@@ -1,6 +1,5 @@
 # kept in sync with entropy
 00-sabayon.package.*
-make.conf.amd64
 
 # stock files
 bin/
