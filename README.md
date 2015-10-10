@@ -16,3 +16,5 @@ To configure portage:
         cd /var/cache/sabayon-build/conf/intel/portage
         cp -r env profile package.* /etc/portage/
 
+Note that you should only install this repo *after* you have installed Entropy, otherwise you will run into circular dependencies which will prevent you from merging it (and are most easily bypassed by using it).
+
