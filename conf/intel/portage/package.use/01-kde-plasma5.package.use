@@ -14,3 +14,5 @@ kde-apps/solid-runtime -bluetooth networkmanager
 net-libs/telepathy-qt qt5
 kde-apps/ktp-common-internals otr
 
+# These could be useful...
+kde-apps/dolphin-plugins git mercurial subversion
