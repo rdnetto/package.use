@@ -1,25 +1,94 @@
 # Virtual package not unmasked upstream
-=kde-apps/kdebase-meta-15.08.0
+<kde-apps/kdebase-meta-15.08.49
 
 # Need new telepathy for its plasmoid
-=kde-apps/plasma-telepathy-meta-15.08.1
-=kde-apps/ktp-accounts-kcm-15.08.1
-=kde-apps/ktp-approver-15.08.1
-=kde-apps/ktp-auth-handler-15.08.1
-=kde-apps/ktp-call-ui-15.08.1
-=kde-apps/ktp-common-internals-15.08.1
-=kde-apps/ktp-contact-list-15.08.1
-=kde-apps/ktp-contact-runner-15.08.1
-=kde-apps/ktp-desktop-applets-15.08.1
-=kde-apps/ktp-filetransfer-handler-15.08.1
-=kde-apps/ktp-kded-module-15.08.1
-=kde-apps/ktp-send-file-15.08.1
-=kde-apps/ktp-text-ui-15.08.1
+<kde-apps/plasma-telepathy-meta-15.08.49
+<kde-apps/ktp-accounts-kcm-15.08.49
+<kde-apps/ktp-approver-15.08.49
+<kde-apps/ktp-auth-handler-15.08.49
+<kde-apps/ktp-call-ui-15.08.49
+<kde-apps/ktp-common-internals-15.08.49
+<kde-apps/ktp-contact-list-15.08.49
+<kde-apps/ktp-contact-runner-15.08.49
+<kde-apps/ktp-desktop-applets-15.08.49
+<kde-apps/ktp-filetransfer-handler-15.08.49
+<kde-apps/ktp-kded-module-15.08.49
+<kde-apps/ktp-send-file-15.08.49
+<kde-apps/ktp-text-ui-15.08.49
 
 <kde-apps/signon-kwallet-extension-15.08.49
 <kde-apps/kaccounts-providers-15.08.49
 <kde-apps/kaccounts-integration-15.08.49
 
 #need KCM entry
-=kde-apps/kwalletmanager-15.08.1
+<kde-apps/kwalletmanager-15.08.49
+
+# PIM
+<kde-apps/kdepim-runtime-15.08.49
+<kde-apps/kdepim-15.08.49
+<kde-apps/kdepimlibs-15.08.49
+
+<kde-apps/kcalcore-15.08.49
+<kde-apps/kldap-15.08.49
+<kde-apps/kalarmcal-15.08.49
+<kde-apps/syndication-15.08.49
+<kde-apps/kmime-15.08.49
+<kde-apps/kidentitymanagement-15.08.49
+<kde-apps/akonadi-calendar-15.08.49
+<kde-apps/kmailtransport-15.08.49
+<kde-apps/libakonadi-15.08.49
+<kde-apps/akonadi-mime-15.08.49
+<kde-apps/akonadi-contact-15.08.49
+<kde-apps/kcontacts-15.08.49
+<kde-apps/akonadi-15.08.49
+<kde-apps/kontactinterface-15.08.49
+<kde-apps/kpimtextedit-15.08.49
+<kde-apps/kmbox-15.08.49
+<kde-apps/kblog-15.08.49
+<kde-apps/kcalutils-15.08.49
+<kde-apps/kholidays-15.08.49
+<kde-apps/ktnef-15.08.49
+<kde-apps/gpgmepp-15.08.49
+<kde-apps/akonadi-search-15.08.49
+<kde-apps/kimap-15.08.49
+
+# utils
+<kde-apps/kdeutils-meta-15.08.49
+<kde-apps/kcharselect-15.08.49
+<kde-apps/ktimer-15.08.49
+<kde-apps/filelight-15.08.49
+<kde-apps/kteatime-15.08.49
+<kde-apps/ark-15.08.49
+<kde-apps/kcalc-15.08.49
+<kde-apps/print-manager-15.08.49
+<kde-apps/sweeper-15.08.49
+<kde-apps/kdf-15.08.49
+<kde-apps/superkaramba-15.08.49
+
+
+# graphics
+<kde-apps/kdegraphics-meta-15.08.49
+<kde-apps/libkexiv2-15.08.49
+<kde-apps/libkipi-15.08.49
+<kde-apps/kamera-15.08.49
+<kde-apps/svgpart-15.08.49
+<kde-apps/kcolorchooser-15.08.49
+<kde-apps/kruler-15.08.49
+<kde-apps/kdegraphics-mobipocket-15.08.49
+<kde-apps/kolourpaint-15.08.49
+<kde-apps/libkipi-15.08.49
+<kde-apps/libkdcraw-15.08.49
+<kde-apps/libksane-15.08.49
+<kde-apps/gwenview-15.08.49
+<kde-apps/libkdcraw-15.08.49
+<kde-apps/libksane-15.08.49
+<kde-apps/gwenview-15.08.49
+<kde-apps/ksnapshot-15.08.49
+<kde-apps/ksaneplugin-15.08.49
+<kde-apps/okular-15.08.49
+<kde-apps/thumbnailers-15.08.49
+
+# dolphin-plugins
+<kde-apps/dolphin-plugins-15.08.49
+<kde-apps/kompare-15.08.49
 
