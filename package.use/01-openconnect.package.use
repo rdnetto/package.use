@@ -1,0 +1,3 @@
+# Enable OpenConnect plugin for plasmoid
+kde-plasma/plasma-nm openconnect
+
