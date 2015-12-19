@@ -9,3 +9,6 @@
 # required by kdeconnect (>= 0.9.7)
 =net-libs/telepathy-qt-9999 **
 
+# Prison (needed for QR codes), but only available in master so far
+=media-libs/prison-9999 **
+
