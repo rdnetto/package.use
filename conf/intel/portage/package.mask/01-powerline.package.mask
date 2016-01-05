@@ -1,0 +1,2 @@
+# Has an unspecified dependency on <dev-python/sphinx_rtd_theme-0.2
+=app-misc/powerline-2.6

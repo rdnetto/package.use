@@ -1,0 +1,329 @@
+From d4dcc36f407941aa4ea0ce0a0dd41fcb3b0fd260 Mon Sep 17 00:00:00 2001
+From: Rui Abreu Ferreira <raf-ep@gmx.com>
+Date: Thu, 18 Aug 2011 00:26:08 +0100
+Subject: [PATCH 01/11] Initial support clientserver
+
+- This brings in placeholders for clientserver support
+* It is NOT working yet it just prints debug messages
+---
+ src/Makefile           |   7 +++
+ src/eval.c             |  12 ++---
+ src/feature.h          |   2 +-
+ src/globals.h          |   2 +-
+ src/if_xcmdsrv.c       |   2 +-
+ src/main.c             |  10 ++--
+ src/qt/if_qtcmdsrv.cpp | 121 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 7 files changed, 142 insertions(+), 14 deletions(-)
+ create mode 100644 src/qt/if_qtcmdsrv.cpp
+
+diff --git a/src/Makefile b/src/Makefile
+index a9e475d..91f4ff9 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -1257,16 +1257,20 @@ QT_SRC	= gui.c gui_qt.cpp pty.c gui_beval.c \
+ 			qt/qvimshell.cpp qt/mainwindow.cpp qt/vimaction.cpp qt/scrollarea.cpp \
+ 			qt/fontdialog.cpp \
+ 			qt/colortable.cpp \
++			qt/if_qtcmdsrv.cpp \
+ 			qt/vimwrapper.cpp qt/tabbar.cpp qt/vimscrollbar.cpp \
+ 			qt/vimevents.cpp
++
+ QT_OBJ	= objects/gui.o objects/gui_qt.o \
+ 			objects/pty.o objects/gui_beval.o \
+ 			objects/mainwindow.o objects/qvimshell.o objects/vimaction.o objects/qtresources.o \
+ 			objects/colortable.o \
++			objects/if_qtcmdsrv.o \
+ 			objects/scrollarea.o objects/fontdialog.o objects/vimwrapper.o \
+ 			objects/vimevents.o \
+ 			objects/tabbar.o objects/vimscrollbar.o
+ 
++
+ QT_DEFS	= -DFEAT_GUI_QT $(NARROW_PROTO) -Iqt -I. $(QT_INCPATH)
+ QT_IPATH	= $(GUI_INC_LOC)
+ QT_LIBS_DIR = $(GUI_LIB_LOC)
+@@ -2630,6 +2634,9 @@ objects/tabbar.o: qt/tabbar.cpp
+ 	$(MOC) qt/tabbar.h > tabbar.moc
+ 	$(CXX) $(ALL_CFLAGS) -o $@ -c qt/tabbar.cpp
+ 
++objects/if_qtcmdsrv.o: qt/if_qtcmdsrv.cpp
++	$(CXX) $(ALL_CFLAGS) -o $@ -c qt/if_qtcmdsrv.cpp
++
+ objects/gui_beval.o: gui_beval.c
+ 	$(CCC) -o $@ gui_beval.c
+ 
+diff --git a/src/eval.c b/src/eval.c
+index 171fd41..e89daa3 100644
+--- a/src/eval.c
++++ b/src/eval.c
+@@ -15038,7 +15038,7 @@ remote_common(argvars, rettv, expr)
+     char_u	*keys;
+     char_u	*r = NULL;
+     char_u	buf[NUMBUFLEN];
+-# ifdef WIN32
++# if defined(WIN32) || defined(FEAT_GUI_QT)
+     HWND	w;
+ # else
+     Window	w;
+@@ -15056,7 +15056,7 @@ remote_common(argvars, rettv, expr)
+     if (server_name == NULL)
+ 	return;		/* type error; errmsg already given */
+     keys = get_tv_string_buf(&argvars[1], buf);
+-# ifdef WIN32
++# if defined(WIN32) || defined(FEAT_GUI_QT)
+     if (serverSendToVim(server_name, keys, &r, &w, expr, TRUE) < 0)
+ # else
+     if (serverSendToVim(X_DISPLAY, server_name, keys, &r, &w, expr, 0, TRUE)
+@@ -15140,7 +15140,7 @@ f_remote_peek(argvars, rettv)
+ #ifdef FEAT_CLIENTSERVER
+     dictitem_T	v;
+     char_u	*s = NULL;
+-# ifdef WIN32
++# if defined(WIN32) || defined(FEAT_GUI_QT)
+     long_u	n = 0;
+ # endif
+     char_u	*serverid;
+@@ -15156,7 +15156,7 @@ f_remote_peek(argvars, rettv)
+ 	rettv->vval.v_number = -1;
+ 	return;		/* type error; errmsg already given */
+     }
+-# ifdef WIN32
++# if defined(WIN32) || defined(FEAT_GUI_QT)
+     sscanf(serverid, SCANF_HEX_LONG_U, &n);
+     if (n == 0)
+ 	rettv->vval.v_number = -1;
+@@ -15201,7 +15201,7 @@ f_remote_read(argvars, rettv)
+ 
+     if (serverid != NULL && !check_restricted() && !check_secure())
+     {
+-# ifdef WIN32
++# if defined(WIN32) || defined(FEAT_GUI_QT)
+ 	/* The server's HWND is encoded in the 'id' parameter */
+ 	long_u		n = 0;
+ 
+@@ -16299,7 +16299,7 @@ f_serverlist(argvars, rettv)
+     char_u	*r = NULL;
+ 
+ #ifdef FEAT_CLIENTSERVER
+-# ifdef WIN32
++# if defined(WIN32) || defined(FEAT_GUI_QT)
+     r = serverGetVimNames();
+ # else
+     make_connection();
+diff --git a/src/feature.h b/src/feature.h
+index 4dde8ec..9319a8f 100644
+--- a/src/feature.h
++++ b/src/feature.h
+@@ -1185,7 +1185,7 @@
+  * +clientserver	Remote control via the remote_send() function
+  *			and the --remote argument
+  */
+-#if (defined(WIN32) || defined(FEAT_XCLIPBOARD)) && defined(FEAT_EVAL)
++#if (defined(WIN32) || defined(FEAT_XCLIPBOARD) || defined(FEAT_GUI_QT)) && defined(FEAT_EVAL)
+ # define FEAT_CLIENTSERVER
+ #endif
+ 
+diff --git a/src/globals.h b/src/globals.h
+index 69378d6..f90f9c5 100644
+--- a/src/globals.h
++++ b/src/globals.h
+@@ -1321,7 +1321,7 @@ EXTERN Window	clientWindow INIT(= None);
+ EXTERN Atom	commProperty INIT(= None);
+ EXTERN char_u	*serverDelayedStartName INIT(= NULL);
+ # else
+-#  ifdef PROTO
++# if defined(PROTO) || defined(FEAT_GUI_QT)
+ typedef int HWND;
+ #  endif
+ EXTERN HWND	clientWindow INIT(= 0);
+diff --git a/src/if_xcmdsrv.c b/src/if_xcmdsrv.c
+index 44526d7..fabfcf6 100644
+--- a/src/if_xcmdsrv.c
++++ b/src/if_xcmdsrv.c
+@@ -14,7 +14,7 @@
+ #include "vim.h"
+ #include "version.h"
+ 
+-#if defined(FEAT_CLIENTSERVER) || defined(PROTO)
++#if !defined(FEAT_GUI_QT) && defined(FEAT_CLIENTSERVER) || defined(PROTO)
+ 
+ # ifdef FEAT_X11
+ #  include <X11/Intrinsic.h>
+diff --git a/src/main.c b/src/main.c
+index d0a78b6..883e218 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -3539,7 +3539,7 @@ exec_on_server(parmp)
+ {
+     if (parmp->serverName_arg == NULL || *parmp->serverName_arg != NUL)
+     {
+-# ifdef WIN32
++# if defined(WIN32) || defined(FEAT_GUI_QT)
+ 	/* Initialise the client/server messaging infrastructure. */
+ 	serverInitMessaging();
+ # endif
+@@ -3563,7 +3563,7 @@ exec_on_server(parmp)
+ 	 * clipboard first, it's further down. */
+ 	parmp->servername = serverMakeName(parmp->serverName_arg,
+ 							      parmp->argv[0]);
+-# ifdef WIN32
++# if defined(WIN32) || defined(FEAT_GUI_QT)
+ 	if (parmp->servername != NULL)
+ 	{
+ 	    serverSetName(parmp->servername);
+@@ -3797,7 +3797,7 @@ cmdsrv_main(argc, argv, serverName_arg, serverStr)
+ 		vim_memset(done, 0, numFiles);
+ 		while (memchr(done, 0, numFiles) != NULL)
+ 		{
+-# ifdef WIN32
++# if defined(WIN32) || defined(FEAT_GUI_QT)
+ 		    p = serverGetReply(srv, NULL, TRUE, TRUE);
+ 		    if (p == NULL)
+ 			break;
+@@ -3826,7 +3826,7 @@ cmdsrv_main(argc, argv, serverName_arg, serverStr)
+ 	{
+ 	    if (i == *argc - 1)
+ 		mainerr_arg_missing((char_u *)argv[i]);
+-# ifdef WIN32
++# if defined(WIN32) || defined(FEAT_GUI_QT)
+ 	    /* Win32 always works? */
+ 	    if (serverSendToVim(sname, (char_u *)argv[i + 1],
+ 						    &res, NULL, 1, FALSE) < 0)
+@@ -3849,7 +3849,7 @@ cmdsrv_main(argc, argv, serverName_arg, serverStr)
+ 	}
+ 	else if (STRICMP(argv[i], "--serverlist") == 0)
+ 	{
+-# ifdef WIN32
++# if defined(WIN32) || defined(FEAT_GUI_QT)
+ 	    /* Win32 always works? */
+ 	    res = serverGetVimNames();
+ # else
+diff --git a/src/qt/if_qtcmdsrv.cpp b/src/qt/if_qtcmdsrv.cpp
+new file mode 100644
+index 0000000..3645a9f
+--- /dev/null
++++ b/src/qt/if_qtcmdsrv.cpp
+@@ -0,0 +1,121 @@
++/*
++ *
++ * if_qtcmdsrv.c: Functions for passing commands through via Qt IPC.
++ */
++#include <Qt/QtCore>
++
++extern "C" {
++
++#include "vim.h"
++
++/*
++ * @return a newline separated list in allocated memory or NULL.
++ *
++ * FIXME: not sure how portable this is
++ */
++char_u *
++serverGetVimNames(void)
++{
++	qDebug() <<__func__;
++
++	char *env = getenv("USER");
++	if (!env) {
++		env = getenv("USERNAME");
++	}
++
++	if ( !env ) {
++		return NULL;
++	}
++
++	QString foldername = QString("vim-qt-%1").arg(env);
++	QDir dir = QDir::temp().filePath(foldername);
++	dir.setFilter(QDir::Files | QDir::NoDotAndDotDot );
++
++	if ( !dir.exists() ) {
++		return NULL;
++	}
++	
++	QStringList files = dir.entryList();
++	QString socketList = files.join("\n");
++
++	QByteArray data = socketList.toAscii();
++	char_u *buffer = (char_u *)calloc( data.length(), sizeof(char_u));
++	if ( buffer == NULL ) {
++		return NULL;
++	}
++
++	for (int i=0; i<data.length(); i++ ) {
++		buffer[i] = (char_u)data.constData()[i];
++	}
++
++	return buffer;
++}
++
++
++
++/**
++ * Send a reply string (notification) to client with id "name".
++ * Return -1 if the window is invalid.
++ *
++ * @parma name Where to send
++ * @param reply What to send
++ */
++int
++serverSendReply(char_u *name, char_u *reply) 
++{
++	qDebug() <<__func__ << name << reply;
++	return -1;
++}
++
++/*
++ * Get a reply from server "server".
++ * When "expr_res" is non NULL, get the result of an expression, otherwise a
++ * server2client() message.
++ * When non NULL, point to return code. 0 => OK, -1 => ERROR
++ * If "remove" is TRUE, consume the message, the caller must free it then.
++ * if "wait" is TRUE block until a message arrives (or the server exits).
++ */
++char_u *
++serverGetReply(HWND server, int *expr_res, int remove, int wait)
++{
++	qDebug() <<__func__ << server;
++	return NULL;
++}
++
++/**
++ *
++ * @param name Where to send
++ * @param cmd What to send
++ * @param result Result of eval'ed expression
++ * @param ptarget HWND of server
++ * @param asExpr Expression or keys?
++ * @param silent don't complain about no server
++ */
++int
++serverSendToVim(char_u *name, char_u *cmd, char **result, void *ptarget, int asExpr, int silent)
++{
++	qDebug() << name << cmd;
++
++	return -1;
++}
++
++void
++serverSetName(char_u *name)
++{
++	qDebug() << __func__ << name;
++
++}
++
++/*
++ * Initialise the message handling process.
++ *
++ */
++void
++serverInitMessaging(void)
++{
++	qDebug() << __func__;
++
++}
++
++
++} // extern "C"
+-- 
+2.3.1
+

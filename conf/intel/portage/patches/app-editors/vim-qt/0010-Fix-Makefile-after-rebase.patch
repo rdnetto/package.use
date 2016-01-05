@@ -1,0 +1,28 @@
+From c6d18e4968950cee67a8b46fec1da9d311ae7086 Mon Sep 17 00:00:00 2001
+From: Rui Abreu Ferreira <raf-ep@gmx.com>
+Date: Tue, 28 Aug 2012 18:07:22 +0100
+Subject: [PATCH 10/11] Fix Makefile after rebase
+
+---
+ src/Makefile | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/Makefile b/src/Makefile
+index 5a79958..9ff93aa 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -1259,9 +1259,9 @@ QT_SRC	= gui.c gui_qt.cpp pty.c gui_beval.c \
+ 			qt/colortable.cpp \
+ 			qt/if_qtcmdsrv.cpp \
+ 			qt/vimwrapper.cpp qt/tabbar.cpp qt/vimscrollbar.cpp \
+-			qt/vimevents.cpp
+ 			qt/if_commandserver.cpp \
+-			qt/vimwrapper.cpp qt/tabbar.cpp qt/vimscrollbar.cpp
++			qt/vimwrapper.cpp qt/tabbar.cpp qt/vimscrollbar.cpp \
++			qt/vimevents.cpp
+ 
+ QT_OBJ	= objects/gui.o objects/gui_qt.o \
+ 			objects/pty.o objects/gui_beval.o \
+-- 
+2.3.1
+

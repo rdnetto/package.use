@@ -1,0 +1,83 @@
+From 808f39a58cd6f5dd74525f333c3e3435b73276fc Mon Sep 17 00:00:00 2001
+From: Rui Abreu Ferreira <raf-ep@gmx.com>
+Date: Tue, 18 Oct 2011 15:23:38 +0100
+Subject: [PATCH 06/11] Set the servername var
+
+- When we fixed a previous regression in clientserver support
+  we stopped setting the servername var, we now reintroduce it
+  at the new location.
+---
+ src/gui_qt.cpp         | 22 ++++++++++++++++++++--
+ src/qt/if_qtcmdsrv.cpp | 13 -------------
+ 2 files changed, 20 insertions(+), 15 deletions(-)
+
+diff --git a/src/gui_qt.cpp b/src/gui_qt.cpp
+index 402e244..a881854 100644
+--- a/src/gui_qt.cpp
++++ b/src/gui_qt.cpp
+@@ -574,8 +574,26 @@ gui_mch_init()
+ 		gui_mch_enter_fullscreen();
+ 	}
+ 
++	//
++	// Client-Server
++	// - Start the server
++	// - Set the server name
+ 	CommandServer *server = CommandServer::getInstance();
+-	server->listen();
++	if ( !server->listen() ) {
++		qDebug() << "Unable to start Vim server";
++	} else {
++		QFileInfo fi(server->fullServerName());
++		QByteArray data = fi.baseName().toAscii();
++		char_u *buffer = alloc(data.length());
++		for (int i=0; i< data.length(); i++) {
++			buffer[i] = data.constData()[i];
++		}
++		serverName = buffer;
++#ifdef FEAT_EVAL
++		/* Set the servername variable */
++		set_vim_var_string(VV_SEND_SERVER, serverName, -1);
++#endif
++	}
+ 
+ 	return OK;
+ }
+@@ -803,9 +821,9 @@ gui_mch_exit(int rc)
+ 	settings.setValue("state", window->saveState());
+ 	settings.endGroup();
+ 
++	// Close the Vim server
+ 	CommandServer *server = CommandServer::getInstance();
+ 	server->close();
+-
+ 	QApplication::quit();
+ }
+ 
+diff --git a/src/qt/if_qtcmdsrv.cpp b/src/qt/if_qtcmdsrv.cpp
+index cfc7a36..6e08fed 100644
+--- a/src/qt/if_qtcmdsrv.cpp
++++ b/src/qt/if_qtcmdsrv.cpp
+@@ -110,19 +110,6 @@ serverSetName(char_u *name)
+ 	QString socketName = fi.absoluteFilePath();
+ 
+ 	serverSocket->setBaseName(socketName);
+-	qDebug() << __func__;
+-
+-//	QByteArray data = socketName.toAscii();
+-//	char_u *buffer = alloc(data.length());
+-//	for (int i=0; i< data.length(); i++) {
+-//		buffer[i] = data.constData()[i];
+-//	}
+-//	serverName = buffer;
+-//
+-//#ifdef FEAT_EVAL
+-//	/* Set the servername variable */
+-//	set_vim_var_string(VV_SEND_SERVER, serverName, -1);
+-//#endif
+ }
+ 
+ /**
+-- 
+2.3.1
+

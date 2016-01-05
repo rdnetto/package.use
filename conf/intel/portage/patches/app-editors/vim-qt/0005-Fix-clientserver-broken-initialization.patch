@@ -1,0 +1,227 @@
+From 83481d8a65ac2afe3a11e312fa654ec836df04eb Mon Sep 17 00:00:00 2001
+From: Rui Abreu Ferreira <raf-ep@gmx.com>
+Date: Sat, 15 Oct 2011 18:39:27 +0100
+Subject: [PATCH 05/11] Fix clientserver broken initialization
+
+- Commit ecadcff032817d9c6ac554010e869fb734656a14 breaks clientserver
+  because QSocketNotifier requires a loop to function properly and
+  since now Qt is initialized later - the Qt main loop is not running
+  when the server is created.
+
+1) The CommandServer class is now a singleton called from if_qtcmdsrv.cpp
+   and gui_qt.cpp.
+2) The server is created early but listen() is only called when the gui
+   starts.
+3) serverGetVimNames() the QDir::Files filter blocked the socket files from the
+   list - as a quick fix we now use QDir::System - but requires further
+   investigation.
+* An unfortunate side effect of 2) is vim does not get the actual server
+  name back when it creates the server.
+---
+ src/gui_qt.cpp           |  8 +++++++-
+ src/qt/commandserver.cpp | 28 ++++++++++++++++++++++++++++
+ src/qt/commandserver.h   | 10 +++++++++-
+ src/qt/if_qtcmdsrv.cpp   | 47 +++++++++++++++++++----------------------------
+ 4 files changed, 63 insertions(+), 30 deletions(-)
+
+diff --git a/src/gui_qt.cpp b/src/gui_qt.cpp
+index f90aed5..402e244 100644
+--- a/src/gui_qt.cpp
++++ b/src/gui_qt.cpp
+@@ -18,6 +18,7 @@
+ #include "vimaction.h"
+ #include "vimscrollbar.h"
+ #include "fontdialog.h"
++#include "commandserver.h"
+ 
+ extern "C" {
+ 
+@@ -518,7 +519,6 @@ gui_mch_init()
+ #endif
+ 	QApplication *app = new QApplication(dummy_argc, dummy_argv, useGUI);
+ 
+-
+ 	window = new MainWindow(&gui);
+ 
+ 	// Load qVim settings
+@@ -574,6 +574,9 @@ gui_mch_init()
+ 		gui_mch_enter_fullscreen();
+ 	}
+ 
++	CommandServer *server = CommandServer::getInstance();
++	server->listen();
++
+ 	return OK;
+ }
+ 
+@@ -800,6 +803,9 @@ gui_mch_exit(int rc)
+ 	settings.setValue("state", window->saveState());
+ 	settings.endGroup();
+ 
++	CommandServer *server = CommandServer::getInstance();
++	server->close();
++
+ 	QApplication::quit();
+ }
+ 
+diff --git a/src/qt/commandserver.cpp b/src/qt/commandserver.cpp
+index c3eedb8..95a1d23 100644
+--- a/src/qt/commandserver.cpp
++++ b/src/qt/commandserver.cpp
+@@ -5,6 +5,8 @@ extern "C" {
+ #include "vim.h"
+ }
+ 
++CommandServer* CommandServer::instance = new CommandServer();
++
+ CommandClient::CommandClient(QLocalSocket *sock, QObject *parent)
+ :QObject(parent), m_socket(sock)
+ {
+@@ -45,9 +47,35 @@ CommandServer::CommandServer(QObject *parent)
+ {
+ 	connect(this, SIGNAL(newConnection()),
+ 			this, SLOT(handleRequest()));
++}
+ 
++CommandServer* CommandServer::getInstance()
++{
++	return instance;
+ }
+ 
++void CommandServer::setBaseName(const QString& name)
++{
++	m_name = name;
++}
++
++bool CommandServer::listen()
++{
++	if ( !QLocalServer::listen(m_name) ) {
++		QString trySocketName;
++		int idx = 1;
++		do {
++			// FIXME: Fallback strategy using QUuid
++			trySocketName = m_name + QString::number(idx++);
++			if ( QFileInfo(trySocketName).exists() ) {
++				continue;
++			}
++		} while ( !QLocalServer::listen(trySocketName) );
++		socketName =  trySocketName;
++	}
++	
++	return true;
++}
+ 
+ void CommandServer::handleRequest()
+ {
+diff --git a/src/qt/commandserver.h b/src/qt/commandserver.h
+index 3b8a7a3..76fa49e 100644
+--- a/src/qt/commandserver.h
++++ b/src/qt/commandserver.h
+@@ -20,11 +20,19 @@ class CommandServer: public QLocalServer
+ {
+ 	Q_OBJECT
+ public:
++	static CommandServer* getInstance();
++	void setBaseName(const QString& name);
++	bool listen();
++
++private:
+ 	CommandServer(QObject *parent=0);
+ 
+ protected slots:
+ 	void handleRequest();
+-
++private:
++	static CommandServer* instance;
++	QString m_name;
++	QString socketName;
+ };
+ 
+ #endif
+diff --git a/src/qt/if_qtcmdsrv.cpp b/src/qt/if_qtcmdsrv.cpp
+index 86733c0..cfc7a36 100644
+--- a/src/qt/if_qtcmdsrv.cpp
++++ b/src/qt/if_qtcmdsrv.cpp
+@@ -20,7 +20,7 @@ extern "C" {
+ 
+ #include "vim.h"
+ 
+-static CommandServer serverSocket;
++static CommandServer *serverSocket;
+ static QMap<int, QLocalSocket*> serverConnections;
+ 
+ 
+@@ -53,12 +53,12 @@ char_u *
+ serverGetVimNames(void)
+ {
+ 	QDir dir(socketFolder());
+-	dir.setFilter(QDir::Files | QDir::NoDotAndDotDot );
++	dir.setFilter(QDir::System | QDir::NoDotAndDotDot );
+ 
+ 	if ( !dir.exists() ) {
+ 		return NULL;
+ 	}
+-	
++	qDebug() << __func__;
+ 	QStringList files = dir.entryList();
+ 	QString socketList = files.join("\n");
+ 
+@@ -83,7 +83,9 @@ serverGetVimNames(void)
+ void
+ serverInitMessaging(void)
+ {
+-	// Nothing to do	
++	// Nothing to do
++	qDebug() << __func__;
++	serverSocket = CommandServer::getInstance();
+ }
+ 
+ //
+@@ -107,31 +109,20 @@ serverSetName(char_u *name)
+ 	QFileInfo fi(dir.filePath((char*)name));
+ 	QString socketName = fi.absoluteFilePath();
+ 
+-	if ( !serverSocket.listen(socketName) ) {
+-		QString trySocketName;
+-		int idx = 1;
+-		do {
+-			// FIXME: Fallback strategy using QUuid
+-			trySocketName = socketName + QString::number(idx++);
+-			if ( QFileInfo(trySocketName).exists() ) {
+-				continue;
+-			}
+-		} while ( !serverSocket.listen(trySocketName) );
+-
+-		socketName = trySocketName;
+-	}
+-
+-	QByteArray data = socketName.toAscii();
+-	char_u *buffer = alloc(data.length());
+-	for (int i=0; i< data.length(); i++) {
+-		buffer[i] = data.constData()[i];
+-	}
+-	serverName = buffer;
++	serverSocket->setBaseName(socketName);
++	qDebug() << __func__;
+ 
+-#ifdef FEAT_EVAL
+-	/* Set the servername variable */
+-	set_vim_var_string(VV_SEND_SERVER, serverName, -1);
+-#endif
++//	QByteArray data = socketName.toAscii();
++//	char_u *buffer = alloc(data.length());
++//	for (int i=0; i< data.length(); i++) {
++//		buffer[i] = data.constData()[i];
++//	}
++//	serverName = buffer;
++//
++//#ifdef FEAT_EVAL
++//	/* Set the servername variable */
++//	set_vim_var_string(VV_SEND_SERVER, serverName, -1);
++//#endif
+ }
+ 
+ /**
+-- 
+2.3.1
+

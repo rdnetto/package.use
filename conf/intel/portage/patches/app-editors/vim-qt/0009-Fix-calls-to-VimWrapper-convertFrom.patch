@@ -1,0 +1,39 @@
+From 3d610760004ea7a8bef5d5f2440deadf7e3e6725 Mon Sep 17 00:00:00 2001
+From: Rui Abreu Ferreira <raf-ep@gmx.com>
+Date: Mon, 27 Aug 2012 21:40:23 +0100
+Subject: [PATCH 09/11] Fix calls to VimWrapper::convertFrom()
+
+---
+ src/qt/commandserver.cpp | 2 +-
+ src/qt/if_qtcmdsrv.cpp   | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/qt/commandserver.cpp b/src/qt/commandserver.cpp
+index 95a1d23..bd233d0 100644
+--- a/src/qt/commandserver.cpp
++++ b/src/qt/commandserver.cpp
+@@ -33,7 +33,7 @@ void CommandClient::readRequest()
+ 
+ 		if ( asExpr ) {
+ 			char_u *res = eval_client_expr_to_string( (char_u *)VimWrapper::convertTo(cmd).constData() );
+-			*stream << VimWrapper::convertFrom((char*)res);
++			*stream << VimWrapper::convertFrom(res);
+ 		} else {
+ 			// Do we need to poke the loop ?
+ 			server_to_input_buf((char_u *)VimWrapper::convertTo(cmd).constData());
+diff --git a/src/qt/if_qtcmdsrv.cpp b/src/qt/if_qtcmdsrv.cpp
+index 6e08fed..b3a1450 100644
+--- a/src/qt/if_qtcmdsrv.cpp
++++ b/src/qt/if_qtcmdsrv.cpp
+@@ -195,7 +195,7 @@ int
+ serverSendToVim(char_u *name, char_u *cmd, char **result, void *ptarget, int asExpr, int silent)
+ {
+ 	QDir dir( socketFolder() );
+-	QString remotecmd = VimWrapper::convertFrom((char *)cmd);
++	QString remotecmd = VimWrapper::convertFrom(cmd);
+ 
+ 	QLocalSocket *sock = new QLocalSocket();
+ 	QObject::connect(sock, SIGNAL(disconnected()), sock, SLOT(deleteLater()));
+-- 
+2.3.1
+

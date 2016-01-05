@@ -1,0 +1,26 @@
+From 2cbacd5e2a6132b3bd0aba8652c198b1246a6640 Mon Sep 17 00:00:00 2001
+From: Rui Abreu Ferreira <raf-ep@gmx.com>
+Date: Thu, 20 Oct 2011 09:37:29 +0100
+Subject: [PATCH 07/11] Fix wrong makefile libs arguments
+
+- The library arguments int the makefile are wrong. This seems
+  to be the result of some leftover content from the merge conflict.
+---
+ src/Makefile | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/src/Makefile b/src/Makefile
+index 4af5c83..5a79958 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -1253,7 +1253,6 @@ NEXTAW_BUNDLE	=
+ # - QT_INCPATH
+ MOC		= $(QT_MOC)
+ QT_LIBS1	= $(QT_LIBS)
+-QT_LIBS1	= -L$(QT_LIBDIR) -lQtGui -lQtCore -lQtNetwork -lstdc++
+ QT_SRC	= gui.c gui_qt.cpp pty.c gui_beval.c \
+ 			qt/qvimshell.cpp qt/mainwindow.cpp qt/vimaction.cpp qt/scrollarea.cpp \
+ 			qt/fontdialog.cpp \
+-- 
+2.3.1
+
