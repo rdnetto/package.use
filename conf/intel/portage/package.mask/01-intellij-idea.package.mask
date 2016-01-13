@@ -1,3 +1,0 @@
-# Only have a license for 14.1 right now
->=dev-util/idea-ultimate-15.0
-
