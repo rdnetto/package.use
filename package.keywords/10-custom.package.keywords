@@ -6,3 +6,6 @@
 # Need 0.9 for unruu (random Android tool for extracting RUUs)
 =app-arch/unshield-9999 **
 
+# required by kdeconnect (>= 0.9.7)
+=net-libs/telepathy-qt-9999 **
+
