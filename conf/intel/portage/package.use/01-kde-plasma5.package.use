@@ -20,3 +20,6 @@ kde-apps/dolphin-plugins git mercurial subversion
 # adds barcode support for klipper
 kde-plasma/plasma-workspace prison
 
+# needed to reply to text messages from PC
+kde-misc/kdeconnect telepathy
+
