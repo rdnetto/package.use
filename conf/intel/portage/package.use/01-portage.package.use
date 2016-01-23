@@ -1,0 +1,7 @@
+# required by app-portage/gs-pypi-0.2.1::gentoo
+>=app-portage/g-sorcery-0.2.1 bson git
+
+# required by app-portage/g-sorcery-0.2.1::gentoo
+# required by app-portage/gs-pypi-0.2.1::gentoo
+>=app-portage/layman-2.3.0-r1 g-sorcery
+
