@@ -62,7 +62,7 @@ CONFIG_PROTECT="/usr/share/config/kdm /etc /etc/conf.d /etc/init.d"
 # /lib/modules mask is useful for our internal tinderbox
 CONFIG_PROTECT_MASK="/etc/skel /lib/modules"
 APACHE2_MPMS="prefork"
-GENTOO_MIRRORS="http://ftp.swin.edu.au/gentoo ftp://ftp.swin.edu.au/gentoo"
+GENTOO_MIRRORS="http://ftp.swin.edu.au/gentoo"
 
 USE_PYTHON="2.7"
 PYTHON_TARGETS="python2_7 python3_6"
