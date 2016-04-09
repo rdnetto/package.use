@@ -88,3 +88,7 @@ ABI_X86="64 32"
 #   euse - bug #474574
 #   euses and ufed - bug #478318
 PORTDIR="/usr/portage"
+
+# Use proxy
+http_proxy="http://kotomi:8123"
+
