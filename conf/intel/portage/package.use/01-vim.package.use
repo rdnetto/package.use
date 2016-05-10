@@ -2,3 +2,8 @@
 # lua:  needed for color_coded
 app-editors/vim    ruby lua
 app-editors/vim-qt ruby lua
+
+# Needed by Neovim
+dev-lua/lpeg luajit
+dev-lua/mpack luajit
+
