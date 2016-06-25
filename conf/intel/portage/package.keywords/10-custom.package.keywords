@@ -1,8 +1,5 @@
 =media-video/kamoso-9999 **
 
-# Clementine-9999 uses Gstreamer 1.0 (avoids libav mess)
-=media-sound/clementine-9999 **
-
 # Need 0.9 for unruu (random Android tool for extracting RUUs)
 =app-arch/unshield-9999 **
 
