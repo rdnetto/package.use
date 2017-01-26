@@ -2,6 +2,7 @@
 # lua:  needed for color_coded
 app-editors/vim    ruby lua
 app-editors/vim-qt ruby lua
+app-editors/neovim ruby
 
 # Needed by Neovim
 dev-lua/lpeg luajit
