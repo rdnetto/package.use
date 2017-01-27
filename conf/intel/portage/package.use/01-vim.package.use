@@ -8,3 +8,7 @@ app-editors/neovim ruby
 dev-lua/lpeg luajit
 dev-lua/mpack luajit
 
+# Fzf is incompatible with +tinfo
+app-shells/fzf vim zsh-completion
+sys-libs/ncurses -tinfo
+
