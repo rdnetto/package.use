@@ -1071,6 +1071,9 @@ dev-python/pylons genshi jinja
 # openresolv support
 net-dns/bind dlz resolvconf
 net-misc/connman iptables networkmanager resolvconf
+net-misc/networkmanager resolvconf
+# move net-misc/vpnc net-vpn/vpnc
+net-vpn/vpnc resolvconf
 
 sys-auth/polkit -kde -gtk
 media-libs/libpng apng
