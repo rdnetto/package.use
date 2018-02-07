@@ -1,3 +1,6 @@
-# Prefer the version in my overlay
+# Prefer the versions in my overlay
+dev-haskell/stack::gentoo
 dev-haskell/stack::haskell
+dev-util/shellcheck::gentoo
+dev-util/shellcheck::haskell
 
