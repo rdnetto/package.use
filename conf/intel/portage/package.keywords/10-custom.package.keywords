@@ -1,2 +1,16 @@
 # required by =mosh-9999 (argument)
 =net-misc/mosh-9999 **
+=media-video/kamoso-9999 **
+
+# Need 0.9 for unruu (random Android tool for extracting RUUs)
+=app-arch/unshield-9999 **
+
+# required by kdeconnect (>= 0.9.7)
+=net-libs/telepathy-qt-9999 **
+
+# Prison (needed for QR codes), but only available in master so far
+=media-libs/prison-9999 **
+
+# Need at least 1.3.3 for 24-bit colour support
+=net-misc/mosh-9999 **
+
