@@ -1,0 +1,2 @@
+# Stick with the mainline version
+sys-apps/util-linux::rindeal
