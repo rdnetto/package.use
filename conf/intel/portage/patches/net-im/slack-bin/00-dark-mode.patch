@@ -1,0 +1,34 @@
+From d2d2b9520dbd3e94ade3718185195504bc6ce641 Mon Sep 17 00:00:00 2001
+From: Reuben D'Netto <rdnetto@atlassian.com>
+Date: Tue, 22 Jan 2019 15:36:02 +1100
+Subject: [PATCH] Dark mode
+
+---
+ .../app.asar.unpacked/src/static/ssb-interop.js    | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/usr/lib/slack/resources/app.asar.unpacked/src/static/ssb-interop.js b/usr/lib/slack/resources/app.asar.unpacked/src/static/ssb-interop.js
+index 68dc476..5f99a5b 100644
+--- a/usr/lib/slack/resources/app.asar.unpacked/src/static/ssb-interop.js
++++ b/usr/lib/slack/resources/app.asar.unpacked/src/static/ssb-interop.js
+@@ -97,3 +97,17 @@ if (window.location.href !== 'about:blank') {
+ 
+   init(resourcePath, mainModule, !isDevMode);
+ }
++
++// Dark mode hack
++document.addEventListener('DOMContentLoaded', function() {
++ $.ajax({
++   url: 'https://cdn.rawgit.com/laCour/slack-night-mode/master/css/raw/black.css',
++   success: function(css) {
++     let overrides = `
++     code { background-color: #535353; color: #85c5ff; } /* Change color: to whatever font color you want */
++     .c-mrkdwn__pre, .c-mrkdwn__quote { background: #535353 !important; background-color: #535353 !important; }
++     `
++     $("<style></style>").appendTo('head').html(css + overrides);
++   }
++ });
++});
+-- 
+2.19.2
+
