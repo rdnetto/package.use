@@ -8,7 +8,7 @@ CFLAGS="-O2 -march=native -pipe" # -ftree-vectorize ${GRAPHITE}"
 CHOST="x86_64-pc-linux-gnu"
 CXXFLAGS="${CFLAGS}"
 LDFLAGS="-Wl,-O1 -Wl,--as-needed"
-MAKEOPTS="-j8 -s"
+MAKEOPTS="-j16 -s"
 
 # Portage stuff
 ACCEPT_KEYWORDS="~amd64"
@@ -36,6 +36,9 @@ SAB_COMMS="jabber msn yahoo icq irc aim rss slp mail imap"
 # CPU_FLAGS_X86="3dnow 3dnowext mmx mmxext popcnt sse sse2 sse3 sse4a"
 # Actually used by Entropy:
 CPU_FLAGS_X86="mmx"
+
+# Customized for phenom:
+CPU_FLAGS_X86="aes avx f16c fma3 fma4 mmx mmxext popcnt sse sse2 sse3 sse4_1 sse4_2 sse4a ssse3 xop"
 
 # CPU_FLAGS_X86 is only here to provide legacy support during the transition period - remove in a year or so
 USE="${SAB_BAD} ${SAB_MEDIA} ${SAB_CODECS} ${SAB_SYSTEM} ${SAB_FILESYS} ${SAB_PRINT} ${SAB_XSYS} ${SAB_DESKTOP} ${SAB_BROWSER} ${SAB_COMMS} ${CPU_FLAGS_X86}"

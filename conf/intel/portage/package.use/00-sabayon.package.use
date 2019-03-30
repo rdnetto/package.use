@@ -1259,7 +1259,7 @@ dev-qt/qtwebchannel qml
 
 # javafx: https://bugs.sabayon.org/show_bug.cgi?id=5205
 # -nsplugin: conflicts with dev-java/icedtea-web[nsplugin]
-dev-java/oracle-jdk-bin javafx -nsplugin
+dev-java/oracle-jdk-bin javafx -nsplugin gtk3
 
 # -nsplugin: conflicts with dev-java/icedtea-web[nsplugin]
 dev-java/oracle-jre-bin -nsplugin

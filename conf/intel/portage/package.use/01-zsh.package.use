@@ -5,3 +5,5 @@ dev-python/pip zsh-completion
 app-misc/powerline bash extra fonts man tmux zsh
 media-fonts/powerline-fonts droidsansmono
 
+dev-util/bazel zsh-completion
+
