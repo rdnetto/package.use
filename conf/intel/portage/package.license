@@ -40,3 +40,55 @@ dev-java/oracle-jdk-bin			Oracle-BCLA-JavaSE
 dev-java/oracle-jre-bin			Oracle-BCLA-JavaSE
 sys-firmware/b43-firmware		Broadcom
 dev-libs/amdgpu-pro-opencl		AMD-GPU-PRO-EULA
+
+# The following package(s) are using licenses which aren't covered by
+# ACCEPT_LICENSE="@FREE" setting nor have entries in the package.license file:
+app-text/docbook-sgml-dtd X11
+x11-themes/sabayon-artwork-grub CCPL-Attribution-ShareAlike-3.0
+sys-kernel/sabayon-sources linux-firmware
+net-im/discord-bin all-rights-reserved
+net-misc/mrouted Stanford
+media-fonts/steamfonts MSttfEULA
+games-util/steam-launcher ValveSteamLicense
+net-misc/x11-ssh-askpass as-is
+dev-libs/libx86emu as-is
+net-analyzer/ngrep as-is
+x11-themes/sabayon-artwork-cursor CCPL-Attribution-ShareAlike-3.0
+app-arch/deb2targz as-is
+net-misc/megasync MEGA
+games-engines/gargoyle Glulxe Hugo
+net-im/stride-bin Proprietary
+app-crypt/shim-signed as-is
+app-crypt/veracrypt truecrypt-3.0
+media-sound/timidity-eawpatches as-is
+net-im/skypeforlinux Skype-TOS
+sys-kernel/linux-firmware linux-firmware no-source-code
+media-fonts/corefonts MSttfEULA
+media-libs/faac MPEG-4
+x11-themes/sabayon-artwork-core CCPL-Attribution-ShareAlike-3.0
+x11-drivers/nvidia-userspace NVIDIA-r2
+net-im/slack-bin all-rights-reserved
+net-im/zoom-bin Proprietary
+app-arch/p7zip unRAR
+net-print/brother-genml1-bin brother-eula
+sys-kernel/linux-sabayon linux-firmware
+x11-themes/iottinka-artwork as-is
+app-arch/unrar unRAR
+media-sound/spotify Spotify
+net-im/hipchat-bin Proprietary
+x11-themes/sabayon-artwork-extra CCPL-Attribution-ShareAlike-3.0
+sys-firmware/ipw2100-firmware ipw2100-fw
+net-im/bluejeans BlueJeans
+x11-themes/sabayon-artwork-wallpapers CCPL-Attribution-ShareAlike-3.0
+media-gfx/nvidia-cg-toolkit NVIDIA-r1
+media-fonts/bitstream-cyberbit BitstreamCyberbit
+sys-firmware/ipw2200-firmware ipw2200-fw
+x11-themes/sabayon-artwork-isolinux CCPL-Attribution-ShareAlike-3.0
+dev-lua/toluapp as-is
+dev-util/idea IntelliJ-IDEA
+x11-themes/sabayon-artwork-plymouth-base CCPL-Attribution-ShareAlike-3.0
+media-gfx/brother-scan4-bin brother-eula no-source-code
+x11-themes/sabayon-artwork-plymouth-default CCPL-Attribution-ShareAlike-3.0
+# The following package(s) are using licenses which aren't covered by
+# ACCEPT_LICENSE="@FREE" setting nor have entries in the package.license file:
+net-misc/dropbox CC-BY-ND-3.0 dropbox
