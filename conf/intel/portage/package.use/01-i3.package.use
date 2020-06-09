@@ -1,3 +1,5 @@
 # Enable i3 support
 x11-misc/rofi i3 windowmode
 
+x11-misc/polybar i3wm ipc
+
