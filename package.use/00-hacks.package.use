@@ -1,0 +1,11 @@
+# This file contains various hacks needed to resolve conflicts
+
+# Needed to break cycle
+media-libs/tiff -webp
+
+# required by net-wireless/bluez
+sys-apps/dbus user-session
+
+# break cycle: net-dns/avahi[gtk] -> z11-libs/gtk+[cups] -> net-print/cups[zeroconf]
+x11-libs/gtk+ -cups
+

@@ -1,7 +1,6 @@
 # ruby: needed for smeargle
 # lua:  needed for color_coded
-app-editors/vim    ruby lua
-app-editors/vim-qt ruby lua
+app-editors/vim    ruby lua terminal
 app-editors/neovim ruby
 
 # Needed by Neovim
