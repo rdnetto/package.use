@@ -1,0 +1,7 @@
+# Automatically generated
+savedconfig/
+
+# Different boxes may use different profiles for DEs, non-graphical, etc.
+make.profile
+
+repos.conf/
