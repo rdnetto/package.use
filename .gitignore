@@ -3,5 +3,6 @@ savedconfig/
 
 # Different boxes may use different profiles for DEs, non-graphical, etc.
 make.profile
+host_specific/local.conf
 
 repos.conf/

@@ -1,0 +1,3 @@
+# Enable i3 support
+x11-misc/rofi i3 windowmode
+

@@ -1,0 +1,4 @@
+# Powerline (from raiagent overlay)
+app-misc/powerline bash extra fonts man tmux zsh
+media-fonts/powerline-fonts droidsansmono
+

@@ -1,0 +1,3 @@
+# Needed for valgrind
+sys-libs/glibc debug
+

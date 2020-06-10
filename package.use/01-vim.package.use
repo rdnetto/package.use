@@ -1,0 +1,14 @@
+# ruby: needed for smeargle
+# lua:  needed for color_coded
+app-editors/vim    ruby lua
+app-editors/vim-qt ruby lua
+app-editors/neovim ruby
+
+# Needed by Neovim
+dev-lua/lpeg luajit
+dev-lua/mpack luajit
+dev-lua/luv luajit
+
+# Used for fuzzy finder
+app-shells/fzf vim zsh-completion
+

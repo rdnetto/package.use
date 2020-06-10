@@ -1,0 +1,4 @@
+# Prefer the versions in my overlay
+dev-haskell/stack::gentoo
+dev-util/shellcheck::gentoo
+

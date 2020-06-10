@@ -1,0 +1,36 @@
+commit 6de46e7ed51d2514ed73d056da743c1f667251ff
+Author: Reuben D'Netto <rdnetto@gmail.com>
+Date:   Thu Jul 16 23:01:14 2015 +1000
+
+    Added username and seat info to sink/source labels
+
+diff --git a/src/mainwindow.cc b/src/mainwindow.cc
+index 8a145b6..bd1d855 100644
+--- a/src/mainwindow.cc
++++ b/src/mainwindow.cc
+@@ -704,7 +704,11 @@ void MainWindow::updateSinkInput(const pa_sink_input_info &info) {
+     if (clientNames.count(info.client)) {
+         w->boldNameLabel->set_markup(txt = g_markup_printf_escaped("<b>%s</b>", clientNames[info.client]));
+         g_free(txt);
+-        w->nameLabel->set_markup(txt = g_markup_printf_escaped(": %s", info.name));
++        w->nameLabel->set_markup(txt = g_markup_printf_escaped(": %s for <b>%s</b> (%s)",
++                    info.name,
++                    pa_proplist_gets(info.proplist, PA_PROP_APPLICATION_PROCESS_USER),
++                    pa_proplist_gets(info.proplist, PA_PROP_WINDOW_X11_DISPLAY)
++                    ));
+         g_free(txt);
+     } else {
+         w->boldNameLabel->set_text("");
+@@ -757,7 +761,11 @@ void MainWindow::updateSourceOutput(const pa_source_output_info &info) {
+     if (clientNames.count(info.client)) {
+         w->boldNameLabel->set_markup(txt = g_markup_printf_escaped("<b>%s</b>", clientNames[info.client]));
+         g_free(txt);
+-        w->nameLabel->set_markup(txt = g_markup_printf_escaped(": %s", info.name));
++        w->nameLabel->set_markup(txt = g_markup_printf_escaped(": %s for <b>%s</b> (%s)",
++                    info.name,
++                    pa_proplist_gets(info.proplist, PA_PROP_APPLICATION_PROCESS_USER),
++                    pa_proplist_gets(info.proplist, PA_PROP_WINDOW_X11_DISPLAY)
++                    ));
+         g_free(txt);
+     } else {
+         w->boldNameLabel->set_text("");
