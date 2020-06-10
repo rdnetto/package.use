@@ -9,6 +9,3 @@ dev-lua/lpeg luajit
 dev-lua/mpack luajit
 dev-lua/luv luajit
 
-# Used for fuzzy finder
-app-shells/fzf vim zsh-completion
-
