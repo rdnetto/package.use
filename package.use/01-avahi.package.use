@@ -1,0 +1,6 @@
+# required by kde-frameworks/kdnssd
+# required by kde-apps/kio-extras
+# required by kde-apps/dolphin
+# required by kde-apps/kdecore-meta
+net-dns/avahi mdnsresponder-compat
+

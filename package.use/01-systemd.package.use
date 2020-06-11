@@ -1,0 +1,2 @@
+# Needed for docker
+sys-apps/systemd cgroup-hybrid

@@ -1,0 +1,14 @@
+# Unmask these, as they're only available in testing
+app-admin/entr ~amd64
+app-editors/neovim-qt ~amd64
+app-misc/diff-so-fancy ~amd64
+app-misc/powerline-hs ~amd64
+app-shells/fasd ~amd64
+app-shells/powerline ~amd64
+dev-haskell/stack-bin ~amd64
+dev-vcs/dispatch-merge ~amd64
+sys-apps/bat ~amd64
+sys-apps/bat ~amd64
+sys-fs/bcache-tools ~amd64
+x11-terms/kitty ~amd64
+x11-terms/kitty-terminfo ~amd64
