@@ -7,6 +7,6 @@ This portage config is designed to be used across computers to enable package re
         kotomi:/srv/portage           /mnt/portage        nfs     defaults,noatime,async,_netdev   0 0
 
 * create a symlink in `./host_specific` to the relevant profile called `local.conf`
-* `eselect profile set` accordingly (otherwise your USE flags won't match)
+* `eselect profile set default/linux/amd64/17.1/systemd` or the KDE equiv (otherwise your USE flags won't match)
 * emerge @world
 
