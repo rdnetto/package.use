@@ -10,3 +10,7 @@ This portage config is designed to be used across computers to enable package re
 * `eselect profile set default/linux/amd64/17.1/systemd` or the KDE equiv (otherwise your USE flags won't match)
 * emerge @world
 
+# Overlays required
+* go-overlay - antibody
+* brother-overlay - brother-scan4-bin
+
