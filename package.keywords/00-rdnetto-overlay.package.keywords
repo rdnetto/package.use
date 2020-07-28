@@ -1,0 +1,11 @@
+# From ::rdnetto-overlay
+app-editors/neovim-qt ~amd64
+app-misc/diff-so-fancy ~amd64
+app-misc/powerline-hs ~amd64
+app-shells/fasd ~amd64
+dev-haskell/stack-bin ~amd64
+dev-vcs/dispatch-merge ~amd64
+gui-apps/wdisplays ~amd64
+gui-apps/wlogout ~amd64
+sys-power/brightnessctl ~amd64
+x11-misc/ulauncher ~amd64
