@@ -1,2 +1,2 @@
 gui-wm/sway tray
-gui-apps/waybar tray
+gui-apps/waybar network tray

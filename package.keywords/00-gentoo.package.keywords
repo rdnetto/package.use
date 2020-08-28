@@ -1,6 +1,7 @@
 app-admin/entr ~amd64
 app-shells/fzf ~amd64
 app-shells/powerline ~amd64
+dev-libs/date ~amd64
 dev-python/neovim-remote ~amd64
 gui-apps/grim ~amd64
 gui-apps/kanshi ~amd64
