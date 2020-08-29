@@ -1,0 +1,113 @@
+From bbd0a728eeae379bd50b6793aa67110d76799050 Mon Sep 17 00:00:00 2001
+From: Renee D'Netto <rdnetto@gmail.com>
+Date: Tue, 28 Jul 2020 07:00:22 +1000
+Subject: [PATCH 2/2] Don't compute X11 resource usage on non-X11 platforms.
+
+---
+ src/procproperties.cpp | 22 ++++++++++++++++------
+ src/proctable.cpp      | 20 +++++++++++++++-----
+ 2 files changed, 31 insertions(+), 11 deletions(-)
+
+diff --git a/src/procproperties.cpp b/src/procproperties.cpp
+index 69266d7..2689820 100644
+--- a/src/procproperties.cpp
++++ b/src/procproperties.cpp
+@@ -30,6 +30,12 @@
+ #include "proctable.h"
+ #include "util.h"
+ 
++#ifdef GDK_WINDOWING_X11
++#include <gdk/gdkx.h>
++#else
++#define GDK_IS_X11_DISPLAY(x) 0
++#endif
++
+ enum
+ {
+     COL_PROP = 0,
+@@ -71,11 +77,17 @@ static void
+ get_process_memory_info (ProcInfo *info)
+ {
+     glibtop_proc_mem procmem;
+-    WnckResourceUsage xresources;
+ 
+-    wnck_pid_read_resource_usage (gdk_screen_get_display (gdk_screen_get_default ()),
+-                                  info->pid,
+-                                  &xresources);
++    if (GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
++        WnckResourceUsage xresources;
++        wnck_pid_read_resource_usage (gdk_screen_get_display (gdk_screen_get_default ()),
++                                      info->pid,
++                                      &xresources);
++        info->memxserver = xresources.total_bytes_estimate;
++    } else {
++        info->memxserver = 0;
++    }
++
+ 
+     glibtop_get_proc_mem(&procmem, info->pid);
+ 
+@@ -83,8 +95,6 @@ get_process_memory_info (ProcInfo *info)
+     info->memres	= procmem.resident;
+     info->memshared	= procmem.share;
+ 
+-    info->memxserver = xresources.total_bytes_estimate;
+-
+     get_process_memory_writable(info);
+ 
+     // fake the smart memory column if writable is not available
+diff --git a/src/proctable.cpp b/src/proctable.cpp
+index faab2b0..f05a5a4 100644
+--- a/src/proctable.cpp
++++ b/src/proctable.cpp
+@@ -45,6 +45,7 @@
+ #include <set>
+ #include <list>
+ 
++
+ #ifdef HAVE_SYSTEMD
+ #include <systemd/sd-login.h>
+ #endif
+@@ -59,6 +60,11 @@
+ #include "selinux.h"
+ #include "cgroups.h"
+ 
++#ifdef GDK_WINDOWING_X11
++#include <gdk/gdkx.h>
++#else
++#define GDK_IS_X11_DISPLAY(x) 0
++#endif
+ 
+ ProcInfo::UserMap ProcInfo::users;
+ ProcInfo::List ProcInfo::all;
+@@ -650,9 +656,15 @@ get_process_memory_info(ProcInfo *info)
+     glibtop_proc_mem procmem;
+     WnckResourceUsage xresources;
+ 
+-    wnck_pid_read_resource_usage (gdk_screen_get_display (gdk_screen_get_default ()),
+-                                  info->pid,
+-                                  &xresources);
++    if (GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
++        WnckResourceUsage xresources;
++        wnck_pid_read_resource_usage (gdk_screen_get_display (gdk_screen_get_default ()),
++                                      info->pid,
++                                      &xresources);
++        info->memxserver = xresources.total_bytes_estimate;
++    } else {
++        info->memxserver = 0;
++    }
+ 
+     glibtop_get_proc_mem(&procmem, info->pid);
+ 
+@@ -660,8 +672,6 @@ get_process_memory_info(ProcInfo *info)
+     info->memres    = procmem.resident;
+     info->memshared = procmem.share;
+ 
+-    info->memxserver = xresources.total_bytes_estimate;
+-
+     get_process_memory_writable(info);
+ 
+     // fake the smart memory column if writable is not available
+-- 
+2.25.3
+
