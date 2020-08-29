@@ -1,0 +1,4 @@
+# ozone: enables wayland support
+www-client/chromium ozone
+
+net-libs/nodejs inspector
