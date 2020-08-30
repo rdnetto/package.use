@@ -5,4 +5,4 @@ savedconfig/
 make.profile
 host_specific/local.conf
 
-repos.conf/
+repos.conf/layman.conf
