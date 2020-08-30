@@ -15,3 +15,6 @@ sys-apps/bat ~amd64
 sys-fs/bcache-tools ~amd64
 x11-terms/kitty ~amd64
 x11-terms/kitty-terminfo ~amd64
+
+# Enable use of unstable 5.7 series kernel, since the config for the 5.4 series doesn't include wireguard
+<sys-kernel/gentoo-kernel-bin-5.8.0 ~amd64
