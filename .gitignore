@@ -6,3 +6,6 @@ make.profile
 host_specific/local.conf
 
 repos.conf/layman.conf
+
+# Generated
+package.mask/00-overlays.package.mask

@@ -1,0 +1,6 @@
+# Unmask specific packages from overlays, which were globally masked by package.mask/00-overlays.package.mask
+
+media-gfx/brother-scan4-bin::brother-overlay
+
+app-shells/antibody::go-overlay
+
