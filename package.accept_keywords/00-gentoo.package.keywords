@@ -1,4 +1,5 @@
 app-admin/entr ~amd64
+app-misc/icdiff ~amd64
 app-shells/fzf ~amd64
 app-shells/powerline ~amd64
 dev-libs/date ~amd64
