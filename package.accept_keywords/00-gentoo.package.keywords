@@ -19,3 +19,7 @@ x11-terms/kitty-terminfo ~amd64
 
 # Enable use of unstable 5.7 series kernel, since the config for the 5.4 series doesn't include wireguard
 <sys-kernel/gentoo-kernel-bin-5.8.0 ~amd64
+
+# We need mosh-1.3.3 for colour support, but there's not yet an official release
+net-misc/mosh **
+
