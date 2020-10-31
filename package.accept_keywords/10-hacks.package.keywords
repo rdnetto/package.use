@@ -1,0 +1,3 @@
+# Contains fix for crash on startup under Wayland
+=media-sound/clementine-9999 **
+
