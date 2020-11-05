@@ -1,0 +1,3 @@
+# Patchset adding support for Ordered Chapters
+These patches are taken from [here](https://github.com/gnoling/xbmc/tree/17.3-Krypton-OC), and mentioned in [this forum thread](https://forum.kodi.tv/showthread.php?tid=55764&page=14), being a rebased version of [this PR](https://github.com/xbmc/xbmc/pull/10678).
+

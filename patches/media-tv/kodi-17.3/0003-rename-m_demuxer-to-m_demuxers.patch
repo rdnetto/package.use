@@ -1,0 +1,77 @@
+From 32a1f2574227f34d30d4e21dfdb8690db7edb1a8 Mon Sep 17 00:00:00 2001
+From: Moritz Patelscheck <moritz.patelscheck@campus.tu-berlin.de>
+Date: Tue, 22 Nov 2016 21:29:12 +0100
+Subject: [PATCH 3/9] rename m_demuxer to m_demuxers
+
+---
+ xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp | 10 +++++-----
+ xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h   |  3 +--
+ 2 files changed, 6 insertions(+), 7 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+index 1e6fbe86c7..0a05f8c875 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+@@ -30,7 +30,7 @@ bool CDemuxTimeline::SwitchToNextDemuxer()
+ 
+ void CDemuxTimeline::Reset()
+ {
+-  for (auto &demuxer : m_demuxer)
++  for (auto &demuxer : m_demuxers)
+     demuxer->Reset();
+   m_curChapter = m_chapterMap.begin()->second;
+   if (m_curChapter->startSrcTime != 0)
+@@ -135,7 +135,7 @@ int64_t CDemuxTimeline::GetChapterPos(int chapterIdx)
+ 
+ void CDemuxTimeline::SetSpeed(int iSpeed)
+ {
+-  for (auto &demuxer : m_demuxer)
++  for (auto &demuxer : m_demuxers)
+     demuxer->SetSpeed(iSpeed);
+ }
+ 
+@@ -161,7 +161,7 @@ std::string CDemuxTimeline::GetFileName()
+ 
+ void CDemuxTimeline::EnableStream(int id, bool enable)
+ {
+-  for (auto &demuxer : m_demuxer)
++  for (auto &demuxer : m_demuxers)
+     demuxer->EnableStream(demuxer->GetDemuxerId(), id, enable);
+ }
+ 
+@@ -217,7 +217,7 @@ CDemuxTimeline* CDemuxTimeline::CreateTimelineFromMatroskaParser(CDVDDemux *prim
+ 
+   std::unique_ptr<CDemuxTimeline> timeline(new CDemuxTimeline);
+   timeline->m_primaryDemuxer = primaryDemuxer;
+-  timeline->m_demuxer.emplace_back(primaryDemuxer);
++  timeline->m_demuxers.emplace_back(primaryDemuxer);
+ 
+   // collect needed segment uids
+   std::set<MatroskaSegmentUID> neededSegmentUIDs;
+@@ -254,7 +254,7 @@ CDemuxTimeline* CDemuxTimeline::CreateTimelineFromMatroskaParser(CDVDDemux *prim
+       if(demuxer->Open(input2))
+       {
+         segmentDemuxer[mkv2.segment.infos.uid] = demuxer.get();
+-        timeline->m_demuxer.emplace_back(std::move(demuxer));
++        timeline->m_demuxers.emplace_back(std::move(demuxer));
+         timeline->m_inputStreams.emplace_back(std::move(uInput2));
+       }
+       if (neededSegmentUIDs.size() == 0)
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h
+index f43a968fd7..79847815bf 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h
+@@ -73,9 +73,8 @@ private:
+ 
+   CDVDDemux *m_primaryDemuxer;
+ 
+-  std::list<std::shared_ptr<CDVDDemux>> m_demuxer;
++  std::list<std::shared_ptr<CDVDDemux>> m_demuxers;
+   std::list<std::shared_ptr<CDVDInputStream>> m_inputStreams;
+-  //std::map<CDVDDemux*,DemuxerInfo> m_demuxerInfos;
+ 
+   std::vector<ChapterInfo> m_chapters;
+   std::map<int,ChapterInfo*> m_chapterMap;  // maps chapter end display time in msec to chapter info
+-- 
+2.13.3
+

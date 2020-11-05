@@ -1,0 +1,65 @@
+From 18843e39f7183a95c102b439e067ae428dc89291 Mon Sep 17 00:00:00 2001
+From: Moritz Patelscheck <moritz.patelscheck@campus.tu-berlin.de>
+Date: Wed, 23 Nov 2016 00:58:42 +0100
+Subject: [PATCH 7/9] add global setting for mkv segment search directorys
+
+---
+ xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp | 3 ++-
+ xbmc/settings/AdvancedSettings.cpp                   | 6 ++++++
+ xbmc/settings/AdvancedSettings.h                     | 2 ++
+ 3 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+index fc86784bda..40b1498d47 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+@@ -11,6 +11,7 @@
+ #include "filesystem/File.h"
+ #include "filesystem/Directory.h"
+ #include "MatroskaParser.h"
++#include "settings/AdvancedSettings.h"
+ #include "utils/log.h"
+ #include "utils/StringUtils.h"
+ 
+@@ -224,7 +225,7 @@ CDemuxTimeline* CDemuxTimeline::CreateTimeline(CDVDDemux *primaryDemuxer)
+   std::map<MatroskaSegmentUID,CDVDDemux*> segmentDemuxer;
+   segmentDemuxer[""] = primaryDemuxer;
+   segmentDemuxer[mkv.segment.infos.uid] = primaryDemuxer;
+-  std::list<std::string> searchDirs({""}); // should be a global setting
++  auto &searchDirs = g_advancedSettings.m_videoMkvSegmentsSearchDirs;
+   std::string filename = primaryDemuxer->GetFileName();
+   std::string dirname = filename.substr(0, filename.rfind('/') + 1);
+   for (auto &subDir : searchDirs)
+diff --git a/xbmc/settings/AdvancedSettings.cpp b/xbmc/settings/AdvancedSettings.cpp
+index 91574029c2..f9bbc3cd0a 100644
+--- a/xbmc/settings/AdvancedSettings.cpp
++++ b/xbmc/settings/AdvancedSettings.cpp
+@@ -594,6 +594,12 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
+ 
+     XMLUtils::GetBoolean(pElement,"mediacodecforcesoftwarerendering",m_mediacodecForceSoftwareRendring);
+ 
++    auto pMkvSegmentsSearchDirs = pElement->FirstChildElement("mkvsegmentssearchdirs");
++    if (pMkvSegmentsSearchDirs)
++      XMLUtils::GetStringArray(pMkvSegmentsSearchDirs, "subdir", m_videoMkvSegmentsSearchDirs, true, "");
++    else
++      m_videoMkvSegmentsSearchDirs = std::vector<std::string>{""};
++
+     TiXmlElement* pAdjustRefreshrate = pElement->FirstChildElement("adjustrefreshrate");
+     if (pAdjustRefreshrate)
+     {
+diff --git a/xbmc/settings/AdvancedSettings.h b/xbmc/settings/AdvancedSettings.h
+index fc526d11c3..00ee155a9b 100644
+--- a/xbmc/settings/AdvancedSettings.h
++++ b/xbmc/settings/AdvancedSettings.h
+@@ -196,6 +196,8 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
+     std::string m_videoDefaultPlayer;
+     float m_videoPlayCountMinimumPercent;
+ 
++    std::vector<std::string> m_videoMkvSegmentsSearchDirs;
++
+     float m_slideshowBlackBarCompensation;
+     float m_slideshowZoomAmount;
+     float m_slideshowPanAmount;
+-- 
+2.13.3
+

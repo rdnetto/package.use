@@ -1,0 +1,39 @@
+From 9fbef076a54578fa9d1dfc9e372bc0f02099ec18 Mon Sep 17 00:00:00 2001
+From: Garret Noling <garret@werockjustbecause.com>
+Date: Fri, 30 Jun 2017 08:38:59 -0500
+Subject: [PATCH 9/9] Update SeekTime to take double in DemuxTimeline
+
+---
+ xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp | 2 +-
+ xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h   | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+index 40b1498d47..5c7d0cb5f2 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+@@ -81,7 +81,7 @@ DemuxPacket* CDemuxTimeline::Read()
+   return packet;
+ }
+ 
+-bool CDemuxTimeline::SeekTime(int time, bool backwords, double* startpts)
++bool CDemuxTimeline::SeekTime(double time, bool backwords, double* startpts)
+ {
+   auto it = m_chapterMap.lower_bound(time);
+   if (it == m_chapterMap.end())
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h
+index 79847815bf..f27bf827c2 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h
+@@ -24,7 +24,7 @@ public:
+ 
+   DemuxPacket* Read() override;
+ 
+-  bool SeekTime(int time, bool backwords = false, double* startpts = NULL) override;
++  bool SeekTime(double time, bool backwords = false, double* startpts = NULL) override;
+   bool SeekChapter(int chapter, double* startpts = NULL) override;
+ 
+   int GetChapterCount() override;
+-- 
+2.13.3
+

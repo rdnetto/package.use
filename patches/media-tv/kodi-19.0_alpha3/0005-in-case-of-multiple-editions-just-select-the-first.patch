@@ -1,0 +1,25 @@
+From cd3419a62dae799b0cf49bb6767cd7a9c66a0138 Mon Sep 17 00:00:00 2001
+From: Moritz Patelscheck <moritz.patelscheck@campus.tu-berlin.de>
+Date: Tue, 22 Nov 2016 21:36:00 +0100
+Subject: [PATCH 5/9] in case of multiple editions, just select the first
+
+---
+ xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+index 67668341d8..4ab1f296f0 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+@@ -210,7 +210,7 @@ CDemuxTimeline* CDemuxTimeline::CreateTimeline(CDVDDemux *primaryDemuxer)
+     return nullptr;
+ 
+    // multiple editions unsupported (at the moment)
+-  if (mkv.segment.chapters.editions.size() != 1)
++  if (mkv.segment.chapters.editions.size() > 0)
+     return nullptr;
+   auto &edition = mkv.segment.chapters.editions.front();
+   // only handle ordered chapters
+-- 
+2.25.3
+

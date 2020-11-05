@@ -1,0 +1,39 @@
+From 8eb72fc3a75ca46932d5151a96fe90094db34e24 Mon Sep 17 00:00:00 2001
+From: Moritz Patelscheck <moritz.patelscheck@campus.tu-berlin.de>
+Date: Wed, 23 Nov 2016 01:11:06 +0100
+Subject: [PATCH 8/9] always add empty string as last element in
+ m_videoMkvSegmentsSearchDirs
+
+---
+ xbmc/settings/AdvancedSettings.cpp | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/settings/AdvancedSettings.cpp b/xbmc/settings/AdvancedSettings.cpp
+index f9bbc3cd0a..af14d3bd03 100644
+--- a/xbmc/settings/AdvancedSettings.cpp
++++ b/xbmc/settings/AdvancedSettings.cpp
+@@ -160,6 +160,8 @@ void CAdvancedSettings::Initialize()
+   m_videoFpsDetect = 1;
+   m_videoBusyDialogDelay_ms = 500;
+ 
++  m_videoMkvSegmentsSearchDirs = std::vector<std::string>{""};
++
+   m_mediacodecForceSoftwareRendring = false;
+ 
+   m_videoDefaultLatency = 0.0;
+@@ -596,9 +598,10 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
+ 
+     auto pMkvSegmentsSearchDirs = pElement->FirstChildElement("mkvsegmentssearchdirs");
+     if (pMkvSegmentsSearchDirs)
++    {
+       XMLUtils::GetStringArray(pMkvSegmentsSearchDirs, "subdir", m_videoMkvSegmentsSearchDirs, true, "");
+-    else
+-      m_videoMkvSegmentsSearchDirs = std::vector<std::string>{""};
++      m_videoMkvSegmentsSearchDirs.push_back("");
++    }
+ 
+     TiXmlElement* pAdjustRefreshrate = pElement->FirstChildElement("adjustrefreshrate");
+     if (pAdjustRefreshrate)
+-- 
+2.13.3
+

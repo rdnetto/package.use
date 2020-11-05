@@ -1,3 +1,4 @@
 # Enable HDMI CEC integration
-media-tv/kodi cec
+# Support for Wayland and X is mutually exclusive
+media-tv/kodi cec -X
 

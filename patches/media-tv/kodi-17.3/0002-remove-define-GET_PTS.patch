@@ -1,0 +1,46 @@
+From 06c9fb59e0e586e983280456200dd730bebb19ae Mon Sep 17 00:00:00 2001
+From: Moritz Patelscheck <moritz.patelscheck@campus.tu-berlin.de>
+Date: Tue, 22 Nov 2016 21:25:54 +0100
+Subject: [PATCH 2/9] remove define GET_PTS
+
+---
+ xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+index b0192f1602..1e6fbe86c7 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+@@ -47,8 +47,6 @@ void CDemuxTimeline::Flush()
+   m_curChapter->demuxer->Flush();
+ }
+ 
+-#define GET_PTS(x) ((x)->dts!=DVD_NOPTS_VALUE ? (x)->dts : (x)->pts)
+-
+ DemuxPacket* CDemuxTimeline::Read()
+ {
+   DemuxPacket *packet = nullptr;
+@@ -56,7 +54,9 @@ DemuxPacket* CDemuxTimeline::Read()
+   double dispPts;
+ 
+   packet = m_curChapter->demuxer->Read();
+-  packet && (pts = GET_PTS(packet));
++  if (packet)
++    pts = (packet->dts != DVD_NOPTS_VALUE ? packet->dts : packet->pts);
++
+   while (
+     !packet ||
+     pts + packet->duration < DVD_MSEC_TO_TIME(m_curChapter->startSrcTime) ||
+@@ -67,7 +67,8 @@ DemuxPacket* CDemuxTimeline::Read()
+       if (!SwitchToNextDemuxer())
+         return nullptr;
+     packet = m_curChapter->demuxer->Read();
+-    packet && (pts = GET_PTS(packet));
++    if (packet)
++      pts = (packet->dts != DVD_NOPTS_VALUE ? packet->dts : packet->pts);
+   }
+ 
+   dispPts = pts + DVD_MSEC_TO_TIME(m_curChapter->shiftTime());
+-- 
+2.13.3
+

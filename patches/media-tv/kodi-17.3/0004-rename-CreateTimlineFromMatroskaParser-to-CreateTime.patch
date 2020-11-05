@@ -1,0 +1,54 @@
+From f0d8eba5951f01161bd25ad378d93e80a4a6dd2c Mon Sep 17 00:00:00 2001
+From: Moritz Patelscheck <moritz.patelscheck@campus.tu-berlin.de>
+Date: Tue, 22 Nov 2016 21:31:43 +0100
+Subject: [PATCH 4/9] rename CreateTimlineFromMatroskaParser to CreateTimeline
+ and delete old CreateTimeline
+
+---
+ .../VideoPlayer/DVDDemuxers/DemuxTimeline.cpp      | 26 +++++++++-------------
+ 1 file changed, 10 insertions(+), 16 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+index 0a05f8c875..a9802aa2f1 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+@@ -176,26 +176,20 @@ std::string CDemuxTimeline::GetStreamCodecName(int iStreamId)
+ }
+ 
+ 
+-CDemuxTimeline* CDemuxTimeline::CreateTimeline(CDVDDemux *demuxer)
+-{
+-  return CreateTimelineFromMatroskaParser(demuxer);
+-  return CreateTimelineFromEbml(demuxer);
+-}
+-
+ std::string segUidToHex(std::string uid)
+ {
+-	const char *hex = "0123456789abcdef";
+-	std::string result("0x");
+-	result.reserve(18);
+-	for (unsigned char twoDigits : uid)
+-	{
+-		result.append(1, hex[(twoDigits >> 4) & 0xf]);
+-		result.append(1, hex[twoDigits & 0xf]);
+-	}
+-	return result;
++  const char *hex = "0123456789abcdef";
++  std::string result("0x");
++  result.reserve(18);
++  for (unsigned char twoDigits : uid)
++  {
++    result.append(1, hex[(twoDigits >> 4) & 0xf]);
++    result.append(1, hex[twoDigits & 0xf]);
++  }
++  return result;
+ }
+ 
+-CDemuxTimeline* CDemuxTimeline::CreateTimelineFromMatroskaParser(CDVDDemux *primaryDemuxer)
++CDemuxTimeline* CDemuxTimeline::CreateTimeline(CDVDDemux *primaryDemuxer)
+ {
+   std::unique_ptr<CDVDInputStreamFile> inStream(new CDVDInputStreamFile(CFileItem(primaryDemuxer->GetFileName(), false)));
+   if (!inStream->Open())
+-- 
+2.13.3
+

@@ -1,0 +1,43 @@
+From 210b54f6c3f87fbaff98e84877f53e262925e900 Mon Sep 17 00:00:00 2001
+From: Moritz Patelscheck <moritz.patelscheck@campus.tu-berlin.de>
+Date: Wed, 23 Nov 2016 00:58:42 +0100
+Subject: [PATCH 7/9] add global setting for mkv segment search directorys
+
+---
+ xbmc/settings/AdvancedSettings.cpp | 6 ++++++
+ xbmc/settings/AdvancedSettings.h   | 2 ++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/xbmc/settings/AdvancedSettings.cpp b/xbmc/settings/AdvancedSettings.cpp
+index bc1352b84c..7217ae7f03 100644
+--- a/xbmc/settings/AdvancedSettings.cpp
++++ b/xbmc/settings/AdvancedSettings.cpp
+@@ -614,6 +614,12 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
+     XMLUtils::GetBoolean(pElement,"vdpauInvTelecine",m_videoVDPAUtelecine);
+     XMLUtils::GetBoolean(pElement,"vdpauHDdeintSkipChroma",m_videoVDPAUdeintSkipChromaHD);
+ 
++    auto pMkvSegmentsSearchDirs = pElement->FirstChildElement("mkvsegmentssearchdirs");
++    if (pMkvSegmentsSearchDirs)
++      XMLUtils::GetStringArray(pMkvSegmentsSearchDirs, "subdir", m_videoMkvSegmentsSearchDirs, true, "");
++    else
++      m_videoMkvSegmentsSearchDirs = std::vector<std::string>{""};
++
+     TiXmlElement* pAdjustRefreshrate = pElement->FirstChildElement("adjustrefreshrate");
+     if (pAdjustRefreshrate)
+     {
+diff --git a/xbmc/settings/AdvancedSettings.h b/xbmc/settings/AdvancedSettings.h
+index 0f9e1bbe69..4d82b96bd0 100644
+--- a/xbmc/settings/AdvancedSettings.h
++++ b/xbmc/settings/AdvancedSettings.h
+@@ -177,6 +177,8 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
+     std::string m_videoDefaultPlayer;
+     float m_videoPlayCountMinimumPercent;
+ 
++    std::vector<std::string> m_videoMkvSegmentsSearchDirs;
++
+     float m_slideshowBlackBarCompensation;
+     float m_slideshowZoomAmount;
+     float m_slideshowPanAmount;
+-- 
+2.25.3
+

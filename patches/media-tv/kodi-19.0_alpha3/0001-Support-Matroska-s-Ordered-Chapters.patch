@@ -1,0 +1,1068 @@
+From 57538fe8cd44eb6f76e55637b85d8855da90000e Mon Sep 17 00:00:00 2001
+From: Moritz Patelscheck <moritz.patelscheck@campus.tu-berlin.de>
+Date: Thu, 29 Sep 2016 14:17:47 +0200
+Subject: [PATCH 1/9] Support Matroska's Ordered Chapters
+
+---
+ .../VideoPlayer/DVDDemuxers/CMakeLists.txt    |   6 +
+ .../DVDDemuxers/DVDFactoryDemuxer.cpp         |   9 +-
+ .../VideoPlayer/DVDDemuxers/DemuxTimeline.cpp | 305 ++++++++++++++++++
+ .../VideoPlayer/DVDDemuxers/DemuxTimeline.h   |  86 +++++
+ .../VideoPlayer/DVDDemuxers/EbmlParser.cpp    | 171 ++++++++++
+ .../VideoPlayer/DVDDemuxers/EbmlParser.h      | 116 +++++++
+ .../DVDDemuxers/MatroskaParser.cpp            | 213 ++++++++++++
+ .../VideoPlayer/DVDDemuxers/MatroskaParser.h  |  67 ++++
+ 8 files changed, 972 insertions(+), 1 deletion(-)
+ create mode 100644 xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+ create mode 100644 xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h
+ create mode 100644 xbmc/cores/VideoPlayer/DVDDemuxers/EbmlParser.cpp
+ create mode 100644 xbmc/cores/VideoPlayer/DVDDemuxers/EbmlParser.h
+ create mode 100644 xbmc/cores/VideoPlayer/DVDDemuxers/MatroskaParser.cpp
+ create mode 100644 xbmc/cores/VideoPlayer/DVDDemuxers/MatroskaParser.h
+
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/CMakeLists.txt b/xbmc/cores/VideoPlayer/DVDDemuxers/CMakeLists.txt
+index 48710f847c..c1148c0730 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/CMakeLists.txt
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/CMakeLists.txt
+@@ -1,4 +1,7 @@
+ set(SOURCES DemuxMultiSource.cpp
++            DemuxTimeline.cpp
++	    EbmlParser.cpp
++	    MatroskaParser.cpp
+             DVDDemux.cpp
+             DVDDemuxBXA.cpp
+             DVDDemuxCC.cpp
+@@ -10,6 +13,9 @@ set(SOURCES DemuxMultiSource.cpp
+             DVDFactoryDemuxer.cpp)
+ 
+ set(HEADERS DemuxMultiSource.h
++            DemuxTimeline.h
++	    EbmlParser.h
++	    MatroskaParser.h
+             DVDDemux.h
+             DVDDemuxBXA.h
+             DVDDemuxCC.h
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDFactoryDemuxer.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDFactoryDemuxer.cpp
+index 35ba376ad9..e000fc810a 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DVDFactoryDemuxer.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DVDFactoryDemuxer.cpp
+@@ -14,6 +14,7 @@
+ #include "DVDDemuxFFmpeg.h"
+ #include "DVDInputStreams/DVDInputStream.h"
+ #include "DemuxMultiSource.h"
++#include "DemuxTimeline.h"
+ #include "utils/URIUtils.h"
+ #include "utils/log.h"
+ 
+@@ -73,7 +74,13 @@ CDVDDemux* CDVDFactoryDemuxer::CreateDemuxer(const std::shared_ptr<CDVDInputStre
+ 
+   std::unique_ptr<CDVDDemuxFFmpeg> demuxer(new CDVDDemuxFFmpeg());
+   if (demuxer->Open(pInputStream, fileinfo))
+-    return demuxer.release();
++  {
++    CDVDDemux *pDemuxer = demuxer.release();
++    if(CDemuxTimeline *timeline = CDemuxTimeline::CreateTimeline(pDemuxer))
++      return timeline;
++    else
++      return pDemuxer;
++  }
+   else
+     return NULL;
+ }
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+new file mode 100644
+index 0000000000..bd6f07e024
+--- /dev/null
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+@@ -0,0 +1,305 @@
++#include "DemuxTimeline.h"
++
++#include <algorithm>
++
++#include "DVDClock.h"
++#include "cores/VideoPlayer/Interface/DemuxPacket.h"
++#include "DVDFactoryDemuxer.h"
++#include "DVDDemuxFFmpeg.h"
++#include "DVDInputStreams/DVDInputStreamFile.h"
++#include "DVDInputStreams/DVDFactoryInputStream.h"
++#include "filesystem/File.h"
++#include "filesystem/Directory.h"
++#include "MatroskaParser.h"
++#include "ServiceBroker.h"
++#include "settings/AdvancedSettings.h"
++#include "settings/SettingsComponent.h"
++#include "utils/log.h"
++#include "utils/StringUtils.h"
++
++CDemuxTimeline::CDemuxTimeline() {}
++
++CDemuxTimeline::~CDemuxTimeline() {}
++
++bool CDemuxTimeline::SwitchToNextDemuxer()
++{
++  if (m_curChapter->index + 1 == m_chapters.size())
++    return false;
++  CLog::Log(LOGDEBUG, "TimelineDemuxer: Switch Demuxer");
++  m_curChapter = &m_chapters[m_curChapter->index + 1];
++  m_curChapter->demuxer->SeekTime(m_curChapter->startSrcTime, true);
++  return true;
++}
++
++bool CDemuxTimeline::Reset()
++{
++  for (auto &demuxer : m_demuxers)
++  {
++    if(!demuxer->Reset())
++      return false;
++  }
++  m_curChapter = m_chapterMap.begin()->second;
++  if (m_curChapter->startSrcTime != 0)
++    return m_curChapter->demuxer->SeekTime(m_curChapter->startSrcTime);
++  else
++    return false;
++}
++
++void CDemuxTimeline::Abort()
++{
++  m_curChapter->demuxer->Abort();
++}
++
++void CDemuxTimeline::Flush()
++{
++  m_curChapter->demuxer->Flush();
++}
++
++#define GET_PTS(x) ((x)->dts!=DVD_NOPTS_VALUE ? (x)->dts : (x)->pts)
++
++DemuxPacket* CDemuxTimeline::Read()
++{
++  DemuxPacket *packet = nullptr;
++  double pts = std::numeric_limits<double>::infinity();
++  double dispPts;
++
++  packet = m_curChapter->demuxer->Read();
++  packet && (pts = GET_PTS(packet));
++  while (
++    !packet ||
++    pts + packet->duration < DVD_MSEC_TO_TIME(m_curChapter->startSrcTime) ||
++    pts >= DVD_MSEC_TO_TIME(m_curChapter->stopSrcTime())
++  )
++  {
++    if (!packet || pts >= DVD_MSEC_TO_TIME(m_curChapter->stopSrcTime()))
++      if (!SwitchToNextDemuxer())
++        return nullptr;
++    packet = m_curChapter->demuxer->Read();
++    packet && (pts = GET_PTS(packet));
++  }
++
++  dispPts = pts + DVD_MSEC_TO_TIME(m_curChapter->shiftTime());
++  packet->dts = dispPts;
++  packet->pts = dispPts;
++  packet->duration = std::min(packet->duration, DVD_MSEC_TO_TIME(m_curChapter->stopSrcTime()) - pts);
++  packet->dispTime = DVD_TIME_TO_MSEC(pts) + m_curChapter->shiftTime();
++
++  return packet;
++}
++
++bool CDemuxTimeline::SeekTime(int time, bool backwords, double* startpts)
++{
++  auto it = m_chapterMap.lower_bound(time);
++  if (it == m_chapterMap.end())
++    return false;
++
++  CLog::Log(LOGDEBUG, "TimelineDemuxer: Switch Demuxer");
++  m_curChapter = it->second;
++  bool result = m_curChapter->demuxer->SeekTime(time - m_curChapter->shiftTime(), backwords, startpts);
++  if (result && startpts)
++    (*startpts) += m_curChapter->shiftTime();
++  return result;
++}
++
++bool CDemuxTimeline::SeekChapter(int chapter, double* startpts)
++{
++  --chapter;
++  if (chapter < 0 || unsigned(chapter) >= m_chapters.size())
++    return false;
++  CLog::Log(LOGDEBUG, "TimelineDemuxer: Switch Demuxer");
++  m_curChapter = &m_chapters[chapter];
++  bool result = m_curChapter->demuxer->SeekTime(m_curChapter->startSrcTime, true, startpts);
++  if (result && startpts)
++    (*startpts) += m_curChapter->shiftTime();
++  return result;
++}
++
++int CDemuxTimeline::GetChapterCount()
++{
++  return m_chapters.size();
++}
++
++int CDemuxTimeline::GetChapter()
++{
++  return m_curChapter->index + 1;
++}
++
++void CDemuxTimeline::GetChapterName(std::string& strChapterName, int chapterIdx)
++{
++  --chapterIdx;
++  if (chapterIdx < 0 || unsigned(chapterIdx) >= m_chapters.size())
++    return;
++  strChapterName = m_chapters[chapterIdx].title;
++}
++
++int64_t CDemuxTimeline::GetChapterPos(int chapterIdx)
++{
++  --chapterIdx;
++  if (chapterIdx < 0 || unsigned(chapterIdx) >= m_chapters.size())
++    return 0;
++  return (m_chapters[chapterIdx].startDispTime + 999) / 1000;
++}
++
++void CDemuxTimeline::SetSpeed(int iSpeed)
++{
++  for (auto &demuxer : m_demuxer)
++    demuxer->SetSpeed(iSpeed);
++}
++
++int CDemuxTimeline::GetStreamLength()
++{
++  return m_chapterMap.rbegin()->first;
++}
++
++std::vector<CDemuxStream*> CDemuxTimeline::GetStreams() const
++{
++  return m_primaryDemuxer->GetStreams();
++}
++
++int CDemuxTimeline::GetNrOfStreams() const
++{
++  return m_primaryDemuxer->GetNrOfStreams();
++}
++
++std::string CDemuxTimeline::GetFileName()
++{
++  return m_primaryDemuxer->GetFileName();
++}
++
++void CDemuxTimeline::EnableStream(int id, bool enable)
++{
++  for (auto &demuxer : m_demuxer)
++    demuxer->EnableStream(demuxer->GetDemuxerId(), id, enable);
++}
++
++CDemuxStream* CDemuxTimeline::GetStream(int iStreamId) const
++{
++  return m_primaryDemuxer->GetStream(m_primaryDemuxer->GetDemuxerId(), iStreamId);
++}
++
++std::string CDemuxTimeline::GetStreamCodecName(int iStreamId)
++{
++  return m_primaryDemuxer->GetStreamCodecName(m_primaryDemuxer->GetDemuxerId(), iStreamId);
++}
++
++
++CDemuxTimeline* CDemuxTimeline::CreateTimeline(CDVDDemux *demuxer)
++{
++  return CreateTimelineFromMatroskaParser(demuxer);
++  return CreateTimelineFromEbml(demuxer);
++}
++
++std::string segUidToHex(std::string uid)
++{
++	const char *hex = "0123456789abcdef";
++	std::string result("0x");
++	result.reserve(18);
++	for (unsigned char twoDigits : uid)
++	{
++		result.append(1, hex[(twoDigits >> 4) & 0xf]);
++		result.append(1, hex[twoDigits & 0xf]);
++	}
++	return result;
++}
++
++CDemuxTimeline* CDemuxTimeline::CreateTimelineFromMatroskaParser(CDVDDemux *primaryDemuxer)
++{
++  std::unique_ptr<CDVDInputStreamFile> inStream(new CDVDInputStreamFile(CFileItem(primaryDemuxer->GetFileName(), false), XFILE::READ_TRUNCATED | XFILE::READ_BITRATE | XFILE::READ_CHUNKED));
++  if (!inStream->Open())
++    return nullptr;
++  CDVDInputStream *input = inStream.get();
++
++  MatroskaFile mkv;
++  bool result = mkv.Parse(input);
++  if (!result)
++    return nullptr;
++
++   // multiple editions unsupported (at the moment)
++  if (mkv.segment.chapters.editions.size() != 1)
++    return nullptr;
++  auto &edition = mkv.segment.chapters.editions.front();
++  // only handle ordered chapters
++  if (!edition.flagOrdered)
++    return nullptr;
++
++  std::unique_ptr<CDemuxTimeline> timeline(new CDemuxTimeline);
++  timeline->m_primaryDemuxer = primaryDemuxer;
++  timeline->m_demuxer.emplace_back(primaryDemuxer);
++
++  // collect needed segment uids
++  std::set<MatroskaSegmentUID> neededSegmentUIDs;
++  for (auto &chapter : edition.chapterAtoms)
++    if (chapter.segUid.size() != 0 && chapter.segUid != mkv.segment.infos.uid)
++      neededSegmentUIDs.insert(chapter.segUid);
++
++  // find linked segments
++  std::map<MatroskaSegmentUID,CDVDDemux*> segmentDemuxer;
++  segmentDemuxer[""] = primaryDemuxer;
++  segmentDemuxer[mkv.segment.infos.uid] = primaryDemuxer;
++  auto &searchDirs = CServiceBroker::GetSettingsComponent()->GetAdvancedSettings().get()->m_videoMkvSegmentsSearchDirs;
++  std::string filename = primaryDemuxer->GetFileName();
++  std::string dirname = filename.substr(0, filename.rfind('/') + 1);
++  for (auto &subDir : searchDirs)
++  {
++    if (neededSegmentUIDs.size() == 0)
++      break;
++    CFileItemList files;
++    XFILE::CDirectory::GetDirectory(dirname + subDir, files, ".mkv", XFILE::DIR_FLAG_DEFAULTS);
++    for (auto &file : files.GetList())
++    {
++      std::unique_ptr<CDVDInputStreamFile> uInput2(new CDVDInputStreamFile(*file, XFILE::READ_TRUNCATED | XFILE::READ_BITRATE | XFILE::READ_CHUNKED));
++      CDVDInputStream *input2 = uInput2.get();
++      if (!input2->Open())
++        continue;
++      MatroskaFile mkv2;
++      if (!mkv2.Parse(input2))
++        continue;
++      if (neededSegmentUIDs.erase(mkv2.segment.infos.uid) == 0)
++        continue;
++      input2->Seek(mkv2.offsetBegin, SEEK_SET);
++      std::unique_ptr<CDVDDemuxFFmpeg> demuxer(new CDVDDemuxFFmpeg());
++      if(demuxer->Open(std::move(uInput2), false))
++      {
++        segmentDemuxer[mkv2.segment.infos.uid] = demuxer.get();
++        timeline->m_demuxer.emplace_back(std::move(demuxer));
++        timeline->m_inputStreams.emplace_back(std::move(uInput2));
++      }
++      if (neededSegmentUIDs.size() == 0)
++        break;
++    }
++  }
++
++  // build timeline
++  for (auto &segUid : neededSegmentUIDs)
++    CLog::Log(LOGERROR,
++      "TimelineDemuxer: Could not find matroska segment for segment linking: %s",
++      segUidToHex(segUid).c_str()
++    );
++
++  int dispTime = 0;
++  decltype(segmentDemuxer.begin()) it;
++  for (auto &chapter : edition.chapterAtoms)
++    if ((it = segmentDemuxer.find(chapter.segUid)) != segmentDemuxer.end())
++    {
++      timeline->m_chapters.emplace_back(
++        it->second,
++        chapter.timeStart / 1000000,
++        dispTime,
++        (chapter.timeEnd - chapter.timeStart) / 1000000,
++        timeline->m_chapters.size(),
++        chapter.displays.GetDefault()
++      );
++      dispTime += timeline->m_chapters.back().duration;
++    }
++
++  if (!timeline->m_chapters.size())
++    return nullptr;
++
++  for (auto &chapter : timeline->m_chapters)
++    timeline->m_chapterMap[chapter.stopDispTime() - 1] = &chapter;
++
++  timeline->m_curChapter = &timeline->m_chapters.front();
++  return timeline.release();
++}
++
++// vim: ts=2 sw=2 expandtab
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h
+new file mode 100644
+index 0000000000..27f5c1741e
+--- /dev/null
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.h
+@@ -0,0 +1,86 @@
++#pragma once
++
++#include "DVDDemux.h"
++
++#include <list>
++#include <map>
++#include <memory>
++#include <vector>
++
++class CDemuxTimeline : public CDVDDemux
++{
++
++public:
++  CDemuxTimeline();
++  virtual ~CDemuxTimeline();
++
++  static CDemuxTimeline* CreateTimeline(CDVDDemux *primaryDemuxer);
++  static CDemuxTimeline* CreateTimelineFromEbml(CDVDDemux *primaryDemuxer);
++  static CDemuxTimeline* CreateTimelineFromMatroskaParser(CDVDDemux *primaryDemuxer);
++
++  bool Reset() override;
++  void Abort() override;
++  void Flush() override;
++
++  DemuxPacket* Read() override;
++
++  bool SeekTime(int time, bool backwords = false, double* startpts = NULL) override;
++  bool SeekChapter(int chapter, double* startpts = NULL) override;
++
++  int GetChapterCount() override;
++  int GetChapter() override;
++  void GetChapterName(std::string& strChapterName, int chapterIdx=-1) override;
++  int64_t GetChapterPos(int chapterIdx=-1) override;
++
++  void SetSpeed(int iSpeed) override;
++  int GetStreamLength() override;
++  std::string GetFileName() override;
++
++  int GetNrOfStreams() const override;
++  std::vector<CDemuxStream*> GetStreams() const override;
++  CDemuxStream* GetStream(int iStreamId) const override;
++  std::string GetStreamCodecName(int iStreamId) override;
++  void EnableStream(int id, bool enable) override;
++
++private:
++  bool SwitchToNextDemuxer();
++
++  struct DemuxerInfo {};
++
++  struct ChapterInfo
++  {
++    CDVDDemux *demuxer;
++    int startSrcTime;  // in MSEC
++    int startDispTime; // in MSEC
++    int duration; // in MSEC
++    int stopSrcTime() {return startSrcTime + duration;}
++    int stopDispTime() {return startDispTime + duration;}
++    int shiftTime() {return startDispTime - startSrcTime;}
++    size_t index;
++    std::string title;
++
++    ChapterInfo(CDVDDemux *demuxer = nullptr,
++      int startSrcTime = 0, int startDispTime = 0,
++      int duration = 0, size_t index = 0,
++      std::string title = std::string()
++    ) :
++      demuxer(demuxer),
++      startSrcTime(startSrcTime), startDispTime(startDispTime),
++      duration(duration), index(index),
++      title(title)
++    {}
++  };
++
++  CDVDDemux *m_primaryDemuxer;
++
++  std::list<std::shared_ptr<CDVDDemux>> m_demuxer;
++  std::list<std::shared_ptr<CDVDInputStream>> m_inputStreams;
++  //std::map<CDVDDemux*,DemuxerInfo> m_demuxerInfos;
++
++  std::vector<ChapterInfo> m_chapters;
++  std::map<int,ChapterInfo*> m_chapterMap;  // maps chapter end display time in msec to chapter info
++
++  ChapterInfo *m_curChapter;
++};
++
++// vim: ts=2 sw=2 expandtab
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/EbmlParser.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/EbmlParser.cpp
+new file mode 100644
+index 0000000000..b075aa1e1b
+--- /dev/null
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/EbmlParser.cpp
+@@ -0,0 +1,171 @@
++#include "EbmlParser.h"
++
++bool EbmlReadId(CDVDInputStream *input, EbmlId *output)
++{
++  uint8_t first, byte, mask;
++  EbmlId id;
++  if (!input->Read(&first, 1))
++    return false;
++  id = first;
++  for (mask = 1 << 7; mask > (1 << 4) && (first & mask) == 0; mask >>= 1)
++  {
++    if (!input->Read(&byte, 1))
++      return false;
++    id <<= 8;
++    id |= byte;
++  }
++  if ((first & mask) == 0)
++    return false;
++  (*output) = id;
++  return true;
++}
++
++bool EbmlReadLen(CDVDInputStream *input, uint64_t *output)
++{
++  uint8_t byte, len, mask;
++  uint64_t result;
++  if (!input->Read(&byte, 1))
++    return false;
++  if (byte == 0)
++    return false;
++  for (len = 1, mask = 1 << 7; len < 8 && (byte & mask) == 0; ++len, mask >>= 1);
++  result = byte & ~mask;
++  for (; len > 1; --len)
++  {
++    if (!input->Read(&byte, 1))
++      return false;
++    result <<= 8;
++    result |= byte;
++  }
++  (*output) = result;
++  return true;
++}
++
++bool EbmlReadUint(CDVDInputStream *input, uint64_t *output, uint64_t len)
++{
++  uint8_t byte;
++  uint64_t result = 0;
++  for (uint64_t i = 0; i < len; ++i)
++  {
++    if (!input->Read(&byte, 1))
++      return false;
++    result = (result << 8) | byte;
++  }
++  (*output) = result;
++  return true;
++}
++
++bool EbmlReadString(CDVDInputStream *input, std::string *output, uint64_t len)
++{
++  if (!EbmlReadRaw(input, output, len))
++    return false;
++  output->resize(std::min(output->size(), output->find('\0')));
++  return true;
++}
++
++bool EbmlReadRaw(CDVDInputStream *input, std::string *output, uint64_t len)
++{
++  if (len == 0)
++    return output->clear(), true;
++  std::string result(len, '\0');
++  if (result.size() != len)
++    return false;
++  // the following is safe since C++11
++  if (!input->Read(reinterpret_cast<uint8_t*>(&result[0]), len))
++    return false;
++  (*output) = std::move(result);
++  return true;
++}
++
++EbmlId EbmlReadId(CDVDInputStream *input)
++{
++  EbmlId id = EBML_ID_INVALID;
++  EbmlReadId(input, &id);
++  return id;
++}
++
++uint64_t EbmlReadLen(CDVDInputStream *input)
++{
++  uint64_t len = INVALID_EBML_TAG_LENGTH;
++  EbmlReadLen(input, &len);
++  return len;
++}
++
++uint64_t EbmlReadUint(CDVDInputStream *input, uint64_t len)
++{
++  uint64_t result = -1;
++  EbmlReadUint(input, &result, len);
++  return result;
++}
++
++EbmlParserFunctor BindEbmlStringParser(std::string *output, uint64_t maxLen)
++{
++  return [output,maxLen](CDVDInputStream *input, uint64_t tagLen)
++  {
++    return EbmlReadString(input, output, std::min(tagLen, maxLen));
++  };
++}
++
++EbmlParserFunctor BindEbmlRawParser(std::string *output, uint64_t maxLen)
++{
++  return [output,maxLen](CDVDInputStream *input, uint64_t tagLen)
++  {
++    return EbmlReadRaw(input, output, std::min(tagLen, maxLen));
++  };
++}
++
++bool EbmlParseMaster(CDVDInputStream *input, const ParserMap &parserMap, uint64_t tagLen, bool stopOnError)
++{
++  int64_t tagEnd = input->Seek(0, SEEK_CUR) + tagLen;
++  while (!input->IsEOF() && input->Seek(0, SEEK_CUR) < tagEnd)
++  {
++    EbmlId id;
++    uint64_t len;
++    if (!EbmlReadId(input, &id))
++      return false;
++    if (!EbmlReadLen(input, &len))
++      return false;
++    int64_t subTagEnd = input->Seek(0, SEEK_CUR) + len;
++    auto iterator = parserMap.find(id);
++    if (iterator != parserMap.end())
++    {
++      auto parser = iterator->second;
++      if (!parser) // manually forced abort
++        return true;
++      else if (!parser(input, len) && stopOnError)
++        return false;
++    }
++    input->Seek(subTagEnd, SEEK_SET);
++  }
++  return true;
++}
++
++bool EbmlMasterParser::operator()(CDVDInputStream *input, uint64_t tagLen)
++{
++  bool result = EbmlParseMaster(input, this->parser, tagLen, this->stopOnError);
++  if (this->parsed)
++    return this->parsed();
++  return result;
++}
++
++EbmlMasterParser BindEbmlHeaderParser(EbmlHeader *ebmlHeader)
++{
++  EbmlMasterParser master;
++  master.parser[EBML_ID_EBMLVERSION] = BindEbmlUintParser(&ebmlHeader->version);
++  master.parser[EBML_ID_DOCTYPE] = BindEbmlStringParser(&ebmlHeader->doctype);
++  return master;
++}
++
++bool EbmlHeader::Parse(CDVDInputStream *input)
++{
++  uint64_t len;
++  if (EbmlReadId(input) != EBML_ID_HEADER)
++    return false;
++  if (!EbmlReadLen(input, &len))
++    return false;
++  offsetBegin = input->Seek(0, SEEK_CUR);
++  offsetEnd = offsetBegin + len;
++  return BindEbmlHeaderParser(this)(input, len);
++}
++
++// vim: ts=2 sw=2 expandtab
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/EbmlParser.h b/xbmc/cores/VideoPlayer/DVDDemuxers/EbmlParser.h
+new file mode 100644
+index 0000000000..c15edd74de
+--- /dev/null
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/EbmlParser.h
+@@ -0,0 +1,116 @@
++#pragma once
++
++#include <functional>
++#include <limits>
++#include <list>
++#include <map>
++#include <string>
++#include <type_traits>
++
++#include "DVDInputStreams/DVDInputStream.h"
++
++using EbmlId = uint32_t;
++
++/* top-level master-IDs */
++static const EbmlId EBML_ID_HEADER = 0x1A45DFA3;
++
++/* IDs in the HEADER master */
++static const EbmlId EBML_ID_EBMLVERSION = 0x4286;
++static const EbmlId EBML_ID_EBMLREADVERSION = 0x42F7;
++static const EbmlId EBML_ID_EBMLMAXIDLENGTH = 0x42F2;
++static const EbmlId EBML_ID_EBMLMAXSIZELENGTH = 0x42F3;
++static const EbmlId EBML_ID_DOCTYPE = 0x4282;
++static const EbmlId EBML_ID_DOCTYPEVERSION = 0x4287;
++static const EbmlId EBML_ID_DOCTYPEREADVERSION = 0x4285;
++
++/* general EBML types */
++static const EbmlId EBML_ID_VOID = 0xEC;
++static const EbmlId EBML_ID_CRC32 = 0xBF;
++
++static const EbmlId EBML_ID_RESERVED1 = 0xFF;
++static const EbmlId EBML_ID_RESERVED2 = 0x7FFF;
++static const EbmlId EBML_ID_RESERVED3 = 0x3FFFFF;
++static const EbmlId EBML_ID_RESERVED4 = 0x1FFFFFFF;
++static const EbmlId EBML_ID_INVALID = 0xFFFFFFFF;
++
++static const uint64_t INVALID_EBML_TAG_LENGTH = 0xFFFFFFFFFFFFFF;
++
++EbmlId EbmlReadId(CDVDInputStream *input);
++bool EbmlReadId(CDVDInputStream *input, EbmlId *output);
++uint64_t EbmlReadLen(CDVDInputStream *input);
++bool EbmlReadLen(CDVDInputStream *input, uint64_t *output);
++
++uint64_t EbmlReadUint(CDVDInputStream *input, uint64_t len);
++bool EbmlReadUint(CDVDInputStream *input, uint64_t *output, uint64_t len);
++
++std::string EbmlReadString(CDVDInputStream *input, uint64_t len);
++bool EbmlReadString(CDVDInputStream *input, std::string *output, uint64_t len);
++std::string EbmlReadRaw(CDVDInputStream *input, uint64_t len);
++bool EbmlReadRaw(CDVDInputStream *input, std::string *output, uint64_t len);
++
++
++typedef std::function<bool(CDVDInputStream* input, uint64_t tagLen)> EbmlParserFunctor;
++typedef std::map<EbmlId,EbmlParserFunctor> ParserMap;
++bool EbmlParseMaster(CDVDInputStream *input, const ParserMap &parser, uint64_t tagLen, bool stopOnError = false);
++
++template <typename DataType>
++EbmlParserFunctor BindEbmlUintParser(DataType *output);
++EbmlParserFunctor BindEbmlStringParser(std::string *output, uint64_t maxLen = std::numeric_limits<uint64_t>::max());
++EbmlParserFunctor BindEbmlRawParser(std::string *output, uint64_t maxLen = std::numeric_limits<uint64_t>::max());
++template <typename Container, typename FunctorGenerator, typename ...Args>
++EbmlParserFunctor BindEbmlListParser(Container *lst, FunctorGenerator functorGenerator, Args... args);
++
++struct EbmlMasterParser
++{
++  ParserMap parser;
++  std::function<bool()> parsed;
++  bool stopOnError = false;
++  bool operator()(CDVDInputStream *input, uint64_t tagLen);
++};
++
++struct EbmlHeader
++{
++  uint32_t version = 1;
++  std::string doctype = "matroska";
++  bool Parse(CDVDInputStream *input);
++  int64_t offsetBegin;
++  int64_t offsetEnd;
++};
++
++EbmlMasterParser BindEbmlHeaderParser(EbmlHeader *ebmlHeader);
++
++template <typename DataType>
++EbmlParserFunctor BindEbmlUintParser(DataType *output)
++{
++  typedef typename std::common_type<DataType,uint64_t>::type common;
++  return [output](CDVDInputStream *input, uint64_t tagLen)
++  {
++    uint64_t result;
++    if (!EbmlReadUint(input, &result, tagLen))
++      return false;
++    if (std::is_same<DataType,bool>::value)
++      (*output) = result;
++    else if (common(result) < common(std::numeric_limits<DataType>::max()))
++      (*output) = result;
++    else
++      return false;
++    return true;
++  };
++}
++
++template <typename Container, typename FunctorGenerator, typename ...Args>
++EbmlParserFunctor BindEbmlListParser(Container *lst, FunctorGenerator functorGenerator, Args... args)
++{
++  return [lst,functorGenerator,args...](CDVDInputStream *input, uint64_t tagLen)
++  {
++    auto it = lst->emplace(lst->end());
++    if (it == lst->end())
++      return false;
++    if (functorGenerator(&(*it), args...)(input, tagLen))
++      return true;
++    lst->erase(it);
++    return false;
++  };
++}
++
++// vim: ts=2 sw=2 expandtab
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/MatroskaParser.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/MatroskaParser.cpp
+new file mode 100644
+index 0000000000..6f457947ad
+--- /dev/null
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/MatroskaParser.cpp
+@@ -0,0 +1,213 @@
++#include "MatroskaParser.h"
++
++//#include "Matroska/EbmlParser.h"
++
++/*
++* Matroska element IDs, max. 32 bits
++*/
++
++/* toplevel segment */
++static const EbmlId MATROSKA_ID_SEGMENT = 0x18538067;
++
++/* Matroska top-level master IDs */
++static const EbmlId MATROSKA_ID_INFO = 0x1549A966;
++static const EbmlId MATROSKA_ID_TRACKS = 0x1654AE6B;
++static const EbmlId MATROSKA_ID_CUES = 0x1C53BB6B;
++static const EbmlId MATROSKA_ID_TAGS = 0x1254C367;
++static const EbmlId MATROSKA_ID_SEEKHEAD = 0x114D9B74;
++static const EbmlId MATROSKA_ID_ATTACHMENTS = 0x1941A469;
++static const EbmlId MATROSKA_ID_CLUSTER = 0x1F43B675;
++static const EbmlId MATROSKA_ID_CHAPTERS = 0x1043A770;
++
++/* IDs in the info master */
++static const EbmlId MATROSKA_ID_TIMECODESCALE = 0x2AD7B1;
++static const EbmlId MATROSKA_ID_DURATION = 0x4489;
++static const EbmlId MATROSKA_ID_TITLE = 0x7BA9;
++static const EbmlId MATROSKA_ID_WRITINGAPP = 0x5741;
++static const EbmlId MATROSKA_ID_MUXINGAPP = 0x4D80;
++static const EbmlId MATROSKA_ID_DATEUTC = 0x4461;
++static const EbmlId MATROSKA_ID_SEGMENTUID = 0x73A4;
++
++/* IDs in the tags master */
++static const EbmlId MATROSKA_ID_TAG = 0x7373;
++static const EbmlId MATROSKA_ID_SIMPLETAG = 0x67C8;
++static const EbmlId MATROSKA_ID_TAGNAME = 0x45A3;
++static const EbmlId MATROSKA_ID_TAGSTRING = 0x4487;
++static const EbmlId MATROSKA_ID_TAGLANG = 0x447A;
++static const EbmlId MATROSKA_ID_TAGDEFAULT = 0x4484;
++static const EbmlId MATROSKA_ID_TAGDEFAULT_BUG = 0x44B4;
++static const EbmlId MATROSKA_ID_TAGTARGETS = 0x63C0;
++static const EbmlId MATROSKA_ID_TAGTARGETS_TYPE = 0x63CA;
++static const EbmlId MATROSKA_ID_TAGTARGETS_TYPEVALUE = 0x68CA;
++static const EbmlId MATROSKA_ID_TAGTARGETS_TRACKUID = 0x63C5;
++static const EbmlId MATROSKA_ID_TAGTARGETS_CHAPTERUID = 0x63C4;
++static const EbmlId MATROSKA_ID_TAGTARGETS_ATTACHUID = 0x63C6;
++
++/* IDs in the seekhead master */
++static const EbmlId MATROSKA_ID_SEEKENTRY = 0x4DBB;
++
++/* IDs in the seekpoint master */
++static const EbmlId MATROSKA_ID_SEEKID = 0x53AB;
++static const EbmlId MATROSKA_ID_SEEKPOSITION = 0x53AC;
++
++/* IDs in the chapters master */
++static const EbmlId MATROSKA_ID_EDITIONENTRY = 0x45B9;
++static const EbmlId MATROSKA_ID_EDITIONUID = 0x45BC;
++static const EbmlId MATROSKA_ID_EDITIONFLAGHIDDEN = 0x45BD;
++static const EbmlId MATROSKA_ID_EDITIONFLAGDEFAULT = 0x45DB;
++static const EbmlId MATROSKA_ID_EDITIONFLAGORDERED = 0x45DD;
++static const EbmlId MATROSKA_ID_CHAPTERATOM = 0xB6;
++static const EbmlId MATROSKA_ID_CHAPTERUID = 0x73C4;
++static const EbmlId MATROSKA_ID_CHAPTERTIMESTART = 0x91;
++static const EbmlId MATROSKA_ID_CHAPTERTIMEEND = 0x92;
++static const EbmlId MATROSKA_ID_CHAPTERFLAGHIDDEN = 0x98;
++static const EbmlId MATROSKA_ID_CHAPTERFLAGENABLED = 0x4598;
++static const EbmlId MATROSKA_ID_CHAPTERSEGMENTUID = 0x6E67;
++static const EbmlId MATROSKA_ID_CHAPTERDISPLAY = 0x80;
++static const EbmlId MATROSKA_ID_CHAPSTRING = 0x85;
++static const EbmlId MATROSKA_ID_CHAPLANG = 0x437C;
++static const EbmlId MATROSKA_ID_CHAPCOUNTRY = 0x437E;
++static const EbmlId MATROSKA_ID_CHAPTERPHYSEQUIV = 0x63C3;
++
++struct MatroskaSeekEntry
++{
++  EbmlId seekId = 0;
++  uint64_t seekPos = -1;
++};
++
++EbmlMasterParser BindMatroskaSeekEntryParser(MatroskaSeekEntry *seekEntry)
++{
++  EbmlMasterParser master;
++  master.parser[MATROSKA_ID_SEEKID] = BindEbmlUintParser(&seekEntry->seekId);
++  master.parser[MATROSKA_ID_SEEKPOSITION] = BindEbmlUintParser(&seekEntry->seekPos);
++  master.parsed = [seekEntry]() { return (seekEntry->seekId != 0) && (seekEntry->seekPos >= 0); };
++  return master;
++}
++
++EbmlMasterParser BindMatroskaSeekMapParser(MatroskaSeekMap *seekMap, int64_t basePos)
++{
++  EbmlMasterParser master;
++  master.parser[MATROSKA_ID_SEEKENTRY] = [seekMap,basePos](CDVDInputStream *input, uint64_t tagLen)
++    {
++      MatroskaSeekEntry seekEntry;
++      if (!BindMatroskaSeekEntryParser(&seekEntry)(input, tagLen))
++        return false;
++      seekMap->insert(MatroskaSeekMap::value_type(seekEntry.seekId, basePos + seekEntry.seekPos));
++      return true;
++    };
++  return master;
++}
++
++struct MatroskaChapterDisplay
++{
++  std::string chapString;
++  std::list<std::string> chapLangs;
++};
++
++EbmlMasterParser BindMatroskaChapterDisplayParser(MatroskaChapterDisplay *chapDisplay)
++{
++  EbmlMasterParser master;
++  master.parser[MATROSKA_ID_CHAPSTRING] = BindEbmlStringParser(&chapDisplay->chapString, 4096);
++  master.parser[MATROSKA_ID_CHAPLANG] = BindEbmlListParser(&chapDisplay->chapLangs, BindEbmlStringParser, 32);
++  return master;
++}
++
++EbmlParserFunctor BindMatroskaChapterDisplayMapParser(MatroskaChapterDisplayMap *displays)
++{
++  return [displays](CDVDInputStream *input, uint64_t tagLen)
++    {
++      MatroskaChapterDisplay disp;
++      if (!BindMatroskaChapterDisplayParser(&disp)(input, tagLen))
++        return false;
++      for (auto &elem : disp.chapLangs)
++        (*displays)[elem] = disp.chapString;
++      return true;
++    };
++}
++
++std::string MatroskaChapterDisplayMap::GetDefault()
++{
++  if (this->size() == 0)
++    return std::string();
++  if (this->size() == 1)
++    return this->begin()->second;
++  decltype(this->begin()) iterator;
++  //if (this->end() != (iterator = this->find(GUILanguage))) // where to get the gui language from
++  //  return iterator->second;
++  if (this->end() != (iterator = this->find("eng")))
++    return iterator->second;
++  if (this->end() != (iterator = this->find("und")))
++    return iterator->second;
++  return this->begin()->second;
++}
++
++EbmlMasterParser BindMatroskaChapterAtomParser(MatroskaChapterAtom *chapAtom)
++{
++  EbmlMasterParser master;
++  master.parser[MATROSKA_ID_CHAPTERUID] = BindEbmlUintParser(&chapAtom->uid);
++  master.parser[MATROSKA_ID_CHAPTERTIMESTART] = BindEbmlUintParser(&chapAtom->timeStart);
++  master.parser[MATROSKA_ID_CHAPTERTIMEEND] = BindEbmlUintParser(&chapAtom->timeEnd);
++  master.parser[MATROSKA_ID_CHAPTERFLAGHIDDEN] = BindEbmlUintParser(&chapAtom->flagHidden);
++  master.parser[MATROSKA_ID_CHAPTERFLAGENABLED] = BindEbmlUintParser(&chapAtom->flagEnabled);
++  master.parser[MATROSKA_ID_CHAPTERSEGMENTUID] = BindEbmlRawParser(&chapAtom->segUid, 16);
++  master.parser[MATROSKA_ID_CHAPTERDISPLAY] = BindMatroskaChapterDisplayMapParser(&chapAtom->displays);
++  master.parser[MATROSKA_ID_CHAPTERATOM] = BindEbmlListParser(&chapAtom->subChapters, BindMatroskaChapterAtomParser);
++  return master;
++}
++
++EbmlMasterParser BindMatroskaEditionParser(MatroskaEdition *edition)
++{
++  EbmlMasterParser master;
++  master.parser[MATROSKA_ID_EDITIONUID] = BindEbmlUintParser(&edition->uid);
++  master.parser[MATROSKA_ID_EDITIONFLAGHIDDEN] = BindEbmlUintParser(&edition->flagHidden);
++  master.parser[MATROSKA_ID_EDITIONFLAGDEFAULT] = BindEbmlUintParser(&edition->flagDefault);
++  master.parser[MATROSKA_ID_EDITIONFLAGORDERED] = BindEbmlUintParser(&edition->flagOrdered);
++  master.parser[MATROSKA_ID_CHAPTERATOM] = BindEbmlListParser(&edition->chapterAtoms, BindMatroskaChapterAtomParser);
++  return master;
++}
++
++EbmlMasterParser BindMatroskaChaptersParser(MatroskaChapters *chapters)
++{
++  EbmlMasterParser master;
++  master.parser[MATROSKA_ID_EDITIONENTRY] = BindEbmlListParser(&chapters->editions, BindMatroskaEditionParser);
++  return master;
++}
++
++EbmlMasterParser BindMatroskaInfoParser(MatroskaSegmentInfo *infos)
++{
++  EbmlMasterParser master;
++  master.parser[MATROSKA_ID_SEGMENTUID] = BindEbmlRawParser(&infos->uid, 16);
++  master.parser[MATROSKA_ID_TIMECODESCALE] = BindEbmlUintParser(&infos->timecodeScale);
++  return master;
++}
++
++bool MatroskaSegment::Parse(CDVDInputStream *input)
++{
++  uint64_t len;
++  if (EbmlReadId(input) != MATROSKA_ID_SEGMENT)
++    return false;
++  if (!EbmlReadLen(input, &len))
++    return false;
++  offsetBegin = input->Seek(0, SEEK_CUR);
++  offsetEnd = offsetBegin + len;
++  EbmlMasterParser master;
++  master.parser[MATROSKA_ID_SEEKHEAD] = BindMatroskaSeekMapParser(&this->seekMap, this->offsetBegin);
++  master.parser[MATROSKA_ID_INFO] = BindMatroskaInfoParser(&this->infos);
++  master.parser[MATROSKA_ID_CHAPTERS] = BindMatroskaChaptersParser(&this->chapters);
++  master.parser[MATROSKA_ID_CLUSTER]; // break on cluster
++  return master(input, len);
++}
++
++bool MatroskaFile::Parse(CDVDInputStream *input)
++{
++  offsetBegin = input->Seek(0, SEEK_CUR);
++  if (!ebmlHeader.Parse(input))
++    return false;
++  input->Seek(ebmlHeader.offsetEnd, SEEK_SET);
++  if (!segment.Parse(input))
++    return false;
++  offsetEnd = segment.offsetEnd;
++  return true;
++}
++
++// vim: ts=2 sw=2 expandtab
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/MatroskaParser.h b/xbmc/cores/VideoPlayer/DVDDemuxers/MatroskaParser.h
+new file mode 100644
+index 0000000000..04bc848f0f
+--- /dev/null
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/MatroskaParser.h
+@@ -0,0 +1,67 @@
++#pragma once
++
++#include "EbmlParser.h"
++
++using MatroskaSegmentUID = std::string;
++//using MatroskaChapterDisplayMap = std::map<std::string,std::string>;
++struct MatroskaChapterDisplayMap : std::map<std::string,std::string>
++{
++  std::string GetDefault();
++};
++
++struct MatroskaChapterAtom
++{
++  uint64_t uid = 0;
++  uint64_t timeStart = 0;
++  uint64_t timeEnd = 0;
++  bool flagHidden = false;
++  bool flagEnabled = false;
++  MatroskaSegmentUID segUid;
++  uint64_t segEditionUid = 0;
++  MatroskaChapterDisplayMap displays;
++  std::list<MatroskaChapterAtom> subChapters;
++};
++
++struct MatroskaEdition
++{
++  uint64_t uid = 0;
++  bool flagHidden = false;
++  bool flagDefault = false;
++  bool flagOrdered = false;
++  std::list<MatroskaChapterAtom> chapterAtoms;
++};
++
++struct MatroskaChapters
++{
++  std::list<MatroskaEdition> editions;
++};
++
++typedef std::multimap<EbmlId,uint64_t> MatroskaSeekMap;
++
++struct MatroskaSegmentInfo
++{
++  MatroskaSegmentUID uid;
++  uint64_t timecodeScale = 1000000;
++};
++
++struct MatroskaSegment
++{
++  int64_t offsetBegin;
++  int64_t offsetEnd;
++  MatroskaSegmentInfo infos;
++  MatroskaSeekMap seekMap;
++  MatroskaChapters chapters;
++
++  bool Parse(CDVDInputStream *input);
++};
++
++struct MatroskaFile
++{
++  int64_t offsetBegin;
++  int64_t offsetEnd;
++  EbmlHeader ebmlHeader;
++  MatroskaSegment segment;
++  bool Parse(CDVDInputStream *input);
++};
++
++// vim: ts=2 sw=2 expandtab
+-- 
+2.25.3
+

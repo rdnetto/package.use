@@ -1,0 +1,32 @@
+From d7900bd481ccc3dd075d79ca06f81c853c2f9e50 Mon Sep 17 00:00:00 2001
+From: Moritz Patelscheck <moritz.patelscheck@campus.tu-berlin.de>
+Date: Tue, 22 Nov 2016 23:05:54 +0100
+Subject: [PATCH 6/9] clarify comments on edition checks
+
+---
+ xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+index 20ab10bf15..fc86784bda 100644
+--- a/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
++++ b/xbmc/cores/VideoPlayer/DVDDemuxers/DemuxTimeline.cpp
+@@ -201,11 +201,12 @@ CDemuxTimeline* CDemuxTimeline::CreateTimeline(CDVDDemux *primaryDemuxer)
+   if (!result)
+     return nullptr;
+ 
+-   // multiple editions unsupported (at the moment)
+-  if (mkv.segment.chapters.editions.size() > 0)
++  // at least one edition is need
++  if (mkv.segment.chapters.editions.size() == 0)
+     return nullptr;
++  // multiple editions unsupported (for now), just select the first
+   auto &edition = mkv.segment.chapters.editions.front();
+-  // only handle ordered chapters
++  // only handle ordered editions
+   if (!edition.flagOrdered)
+     return nullptr;
+ 
+-- 
+2.13.3
+

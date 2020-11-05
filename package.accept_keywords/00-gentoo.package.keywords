@@ -23,3 +23,7 @@ x11-terms/kitty-terminfo ~amd64
 # We need mosh-1.3.3 for colour support, but there's not yet an official release
 net-misc/mosh **
 
+# Kodi 19.x switches to Python 3
+# Note that when bumping, you may need to rebase the patches
+=media-tv/kodi-19.0_alpha3 ~amd64
+
