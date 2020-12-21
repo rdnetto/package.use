@@ -9,3 +9,7 @@ gui-apps/wdisplays ~amd64
 gui-apps/wlogout ~amd64
 sys-power/brightnessctl ~amd64
 x11-misc/ulauncher ~amd64
+
+# From ::thegreatmcpain overlay
+media-fonts/nerd-fonts ~amd64
+
